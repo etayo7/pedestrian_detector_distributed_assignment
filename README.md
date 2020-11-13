@@ -16,6 +16,8 @@ This ROS workspace holds some ROS packages that enable the next features:
 * _**PTZ_ROS**_ : Known the coordinates of the target, gives commands to the servos of the PTZ towards the target assigned. It also initializes the PTZ.
 * _**Camera_ROS**_ : Initializes the RGB-D camera.
 
+---
+
 ### Requirements:
 
 * Ubuntu >=18.04
@@ -41,6 +43,8 @@ The YOLO detector used in this node uses a tiny implementation of the YOLO detec
 Yolo Darknet used already implemented in OpenCV >=3.4.2.
 URL of the tiny weights and parameters used (already in this repository */detection/darknet*): https://pysource.com/2019/07/08/yolo-real-time-detection-on-cpu/
 
+---
+
 ### Installation (ROS):
 
 0. Install ROS Melodic and source it on the setup bashrc.sh file.
@@ -51,15 +55,17 @@ URL of the tiny weights and parameters used (already in this repository */detect
 5. If the compiler do not find some .h files, try running 'catkin_make -j 1'.
 6. When the compiler finishes, it's ready to use.
 
+---
+
 ### Running:
 
-(Previously to launch the nodes, make permission to the PTZ USB connection: *sudo chmod 666 /dev/ttyUSB0*)
+(Previously to launch the nodes, make permission to the PTZ USB connection: `sudo chmod 666 /dev/ttyUSB0`)
 
-#### Color initialization launcher:
+#### 0. Color initialization launcher:
 
 _**color_initialization**_
 
-To obtain the mean of the colours used by each target, later will be used to run the full launcher and differentiate each target.
+To obtain the mean of the colours used by each target. Later it will be used to run the full launcher and differentiate each target.
 
 Argument | Default | Description
 ------------ | ------------- | -------------
@@ -67,9 +73,9 @@ N | 3 | Number of targets
 
 Example:
 
-**roslaunch detection color_initialization.launch N:="3"**
+**`roslaunch detection color_initialization.launch N:="3"`**
 
-#### Full launcher:
+#### 1. Full launcher:
 
 This launcher initializes the PTZ and the camera. Then, runs the detection node, the assignment node and the PTZ movement node.
 
@@ -85,6 +91,28 @@ colours | 92 227 101 67 123 95 80 179 122 | Colours of the targets [HSV mean] (H
 
 Example:
 
-**roslaunch detection assignment_face_detector.launch robot:="2" N:="3" costf:="0" pos_max:="1.5" colours:="92 227 101 67 123 95 80 179 122"**
+**`roslaunch detection assignment_face_detector.launch robot:="2" N:="3" costf:="0" pos_max:="1.5" colours:="92 227 101 67 123 95 80 179 122"`**
 
+#### 2. Visualization:
 
+To visualize the image and the assignment just run **rviz** and add the topics */r_x/image* where *x* is the robot id.
+
+#### Multi-Robot System:
+
+If, instead of just one robot with multiple targets, this launcher is going to be running in multiple robots, is needed to reconfigure the bashrc.sh file in all the robots and also in the PC where the roscore is going to be executed. To each robot and the master PC add the next lines to configure a roscore abailable to all the comptuters at the same time to be able to communicate between each other.
+
+**Master PC:**
+
+export ROS_MASTER_URI=http://192.168.1.1:11311
+
+export ROS_HOSTNAME=192.168.1.1
+
+export ROS_IP=192.168.1.1 
+
+**Each robot:**
+
+export ROS_MASTER_URI=http://192.168.1.1:11311
+
+export ROS_HOSTNAME=192.168.1.1
+
+export ROS_IP=192.168.1.1
