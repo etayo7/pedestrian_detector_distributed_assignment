@@ -27,14 +27,14 @@ This ROS workspace holds some ROS packages that enable the next features:
 
 ### ROS Dependencies:
 
-* Eigen (**Master** version with 'all' indexing capabilities) 
+* Eigen (**Master** version with 'all' indexing capabilities)(clone git repository into 'eigen-master' folder iniside the workspace)
 * cv_bridge
 * numpy
 * dlib
 * imutils
 * cmake
 * catkin
-* librealsense2 (https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md)
+* librealsense2 (install guide: https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md)
 * std_msgs
 * usb-cam
 
