@@ -91,7 +91,7 @@ colours | 92 227 101 67 123 95 80 179 122 | Colours of the targets [HSV mean] (H
 
 Example:
 
-**`roslaunch detection assignment_face_detector.launch robot:="2" N:="3" costf:="0" pos_max:="1.5" colours:="92 227 101 67 123 95 80 179 122"`**
+**`roslaunch detection assignment_face_detector.launch robot:="2" N:="3" costf:="0" pos_max:="1.5" colours:="101 147 50 160 207 120 66 123 69"`**
 
 #### 2. Visualization:
 
