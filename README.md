@@ -59,7 +59,7 @@ URL of the tiny weights and parameters used (already in this repository */detect
 
 ### Running:
 
-(Previously to launch the nodes, make permission to the PTZ USB connection: `sudo chmod 666 /dev/ttyUSB0`)
+(Previously to launch the nodes, give permissions to the PTZ USB connection: `sudo chmod 666 /dev/ttyUSB0`)
 
 #### 0. Color initialization launcher:
 
