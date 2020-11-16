@@ -65,7 +65,7 @@ URL of the tiny weights and parameters used (already in this repository */detect
 
 _**color_initialization**_
 
-To obtain the mean of the colours used by each target. Later it will be used to run the full launcher and differentiate each target.
+To obtain the mean of the colours used by each target. Later, the HSV mean values associated to each target will be used to run the full launcher and to differentiate each target.
 
 Argument | Default | Description
 ------------ | ------------- | -------------
@@ -103,16 +103,14 @@ If, instead of just one robot with multiple targets, this launcher is going to b
 
 **Master PC:**
 
-export ROS_MASTER_URI=http://192.168.1.1:11311
-
-export ROS_HOSTNAME=192.168.1.1
-
-export ROS_IP=192.168.1.1 
+export ROS_MASTER_URI=http://192.168.1.XXX:11311
 
 **Each robot:**
 
-export ROS_MASTER_URI=http://192.168.1.1:11311
+export ROS_MASTER_URI=http://192.168.1.XXX:11311
 
-export ROS_HOSTNAME=192.168.1.1
+export ROS_HOSTNAME=192.168.1.YYY
 
-export ROS_IP=192.168.1.1
+export ROS_IP=192.168.1.YYY
+
+*(XXX = IP of master PC // YYY = IP of each robot)*
