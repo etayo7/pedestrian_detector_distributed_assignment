@@ -87,7 +87,7 @@ robot | 1 | Id of the robot
 N | 3 | Number of targets
 costf | 0 | Relative cost = f(bounding box size=0) or f(central pixel depth=1)
 pos_max | 1.5 | Absolute limit of the servo +-pos_max(rad)
-colours | 92 227 101 67 123 95 80 179 122 | Colours of the targets [HSV mean] (HSV_1, HSV_2, HSV_3)
+colours | 101 147 50 160 207 120 66 123 69 | Colours of the targets [HSV mean] (HSV_1, HSV_2, HSV_3)
 
 Example:
 
