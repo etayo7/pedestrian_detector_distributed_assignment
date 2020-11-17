@@ -15,6 +15,7 @@ This ROS workspace holds some ROS packages that enable the next features:
 * _**simplex**_ : Computes the assignment in a distributed way of one of the robots known the costs and send to the PTZ the coordiantes of the assignment.
 * _**PTZ_ROS**_ : Known the coordinates of the target, gives commands to the servos of the PTZ towards the target assigned. It also initializes the PTZ.
 * _**Camera_ROS**_ : Initializes the RGB-D camera.
+* _**eigen-master**_ : C++ template library for linear algebra.
 
 ---
 
@@ -27,7 +28,7 @@ This ROS workspace holds some ROS packages that enable the next features:
 
 ### ROS Dependencies:
 
-* Eigen (**Master** version with 'all' indexing capabilities)(clone git repository into 'eigen-master' folder iniside the workspace)
+* Eigen [already in repository](**Master** version with 'all' indexing capabilities)(clone git repository into 'eigen-master' folder iniside the workspace)
 * cv_bridge
 * numpy
 * dlib
