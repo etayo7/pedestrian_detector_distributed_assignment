@@ -1,0 +1,9 @@
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /visualization_marker_r_@id
+      Name: Robot_@id
+      Namespaces:
+        basic_shapes: true
+        points_and_lines: true
+      Queue Size: 100
+      Value: true

@@ -1,0 +1,19 @@
+port: /dev/ttyUSB0
+baud: 115200
+rate: 20
+sync_write: True
+sync_read: True
+read_rate: 20
+write_rate: 20
+
+
+joints: {
+    servo1: {id: 1, invert: true, max_angle: +3, min_angle: -3},
+    servo2: {id: 2, max_angle: +3, min_angle: -3}
+}
+
+
+controllers: {
+  head_controller: {type: follow_controller, joints: [servo1, servo2], action_name: head_controller/follow_joint_trajectory },
+  base_controller: {type: diff_controller, base_width: 0.140, ticks_meter: 26145 }
+}

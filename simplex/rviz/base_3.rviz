@@ -1,0 +1,8 @@
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /visualization_marker_t_@id
+      Name: Target_@id
+      Namespaces:
+        basic_shapes: true
+      Queue Size: 100
+      Value: true

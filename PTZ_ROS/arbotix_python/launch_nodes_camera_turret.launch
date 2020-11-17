@@ -1,0 +1,10 @@
+<launch>
+
+  <node name="nodo_listener" pkg="publishers_arbotix_python" type="publisher_vel_pos_all_final.py" output="screen">
+  </node>
+
+  <node name="nodo_publisher" pkg="realsense2_camera" type="get_3dpoint.py" output="screen">
+  </node>
+
+
+</launch>

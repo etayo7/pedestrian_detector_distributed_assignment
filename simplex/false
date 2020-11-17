@@ -1,0 +1,29 @@
+
+declare -x resol=20;
+declare -x num=6;
+declare -x user=osboxes;
+declare -x rands=true;
+declare -x local_amcl=false;
+declare -x remote_amcl=false;
+declare -x remote_move_base=false;
+declare -x local_move_base=false;
+declare -x simulated_amcl=true;
+declare -x stage=true;
+declare -x rviz=true;
+declare -x user=osboxes;
+declare -x copy_and_compile=false;
+declare -x clean=true;
+declare -x outp=/dev/null;
+
+declare -x mapimage="/home/osboxes/catkin_ws/src/simulation-utils/maps/labCorridor.pgm"
+
+
+
+declare -x positions="7.0,3.8,0.0
+5.5,6.6,0.0
+9.5,3.2,0.0
+7.0,3.2,0.0
+5.5,4.5,0.0
+8.2,4.5,0.0"
+
+
