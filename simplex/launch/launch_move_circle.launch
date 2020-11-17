@@ -1,0 +1,23 @@
+<launch>
+  <node
+    pkg="simplex"
+    type="move_circle"
+    args="_N:=3 _target:=1 _radius:=0.6 _speed:=0.6"
+    name="Target_1_circle"
+    respawn="true"
+  />
+  <node
+    pkg="simplex"
+    type="move_circle"
+    args="_N:=3 _target:=2 _radius:=0.6 _speed:=0.6"
+    name="Target_2_circle"
+    respawn="true"
+  />
+  <node
+    pkg="simplex"
+    type="move_circle"
+    args="_N:=3 _target:=3 _radius:=0.6 _speed:=0.6"
+    name="Target_3_circle"
+    respawn="true"
+  />
+</launch>

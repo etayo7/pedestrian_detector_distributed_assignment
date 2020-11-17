@@ -1,0 +1,16 @@
+<launch>
+  <node
+    pkg="simplex"
+    type="get_position_send_assign"
+    args="_robot:=1 _N:=2 _policy:=1 _controller:=5 _max_vel:=2 _simulation:=1 _path:=/home/inigoetayogil/odas-ws/src/simplex/results"
+    name="Robot_1_assign"
+    respawn="true"
+  />
+  <node
+    pkg="simplex"
+    type="get_position_send_assign"
+    args="_robot:=2 _N:=2 _policy:=1 _controller:=5 _max_vel:=2 _simulation:=1 _path:=/home/inigoetayogil/odas-ws/src/simplex/results"
+    name="Robot_2_assign"
+    respawn="true"
+  />
+</launch>

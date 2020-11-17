@@ -1,0 +1,7 @@
+  <node
+    pkg="simplex"
+    type="get_position_send_assign"
+    args="_robot:=@id _N:=@n _policy:=@p _controller:=5 _max_vel:=2 _simulation:=1 _path:=/home/inigoetayogil/odas-ws/src/simplex/results _PD:=1"
+    name="Robot_@id_assign"
+    respawn="true"
+  />
