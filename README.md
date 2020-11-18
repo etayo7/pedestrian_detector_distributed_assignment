@@ -98,7 +98,7 @@ Example:
 
 To visualize the image and the assignment just run **rviz** and add the topics */r_x/image* where *x* is the robot id.
 
-#### Multi-Robot System:
+#### 3. Multi-Robot System:
 
 If, instead of just one robot with multiple targets, this launcher is going to be running in multiple robots, is needed to reconfigure the bashrc.sh file in all the robots and also in the PC where the roscore is going to be executed. To each robot and the master PC add the next lines to configure a roscore abailable to all the comptuters at the same time to be able to communicate between each other.
 
