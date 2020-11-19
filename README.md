@@ -11,10 +11,11 @@ Given de number of targets of the problem and the id of the robot to compute the
 
 This ROS workspace holds some ROS packages that enable the next features:
 
-* _**detection**_ : Detects the targets through the camera frames, computes the assignment costs and sets the relative position of the PTZ towards each target observed.
-* _**simplex**_ : Computes the assignment in a distributed way of one of the robots known the costs and send to the PTZ the coordiantes of the assignment.
+* _**detection**_ : Detects the targets through the camera frames, computes the assignment costs and sets the relative position of the PTZ towards each target observed. [Python]
+* _**simplex**_ : Computes the assignment in a distributed way of one of the robots known the costs and send to the PTZ the coordiantes of the assignment. [C++]
 * _**PTZ_ROS**_ : Known the coordinates of the target, gives commands to the servos of the PTZ towards the target assigned. It also initializes the PTZ.
 * _**Camera_ROS**_ : Initializes the RGB-D camera.
+* _**eigen-master**_ : C++ template library for linear algebra.
 
 ---
 
@@ -27,7 +28,7 @@ This ROS workspace holds some ROS packages that enable the next features:
 
 ### ROS Dependencies:
 
-* Eigen (**Master** version with 'all' indexing capabilities)(clone git repository into 'eigen-master' folder iniside the workspace)
+* Eigen [already in repository](**Master** version with 'all' indexing capabilities)(clone git repository into 'eigen-master' folder iniside the workspace)
 * cv_bridge
 * numpy
 * dlib
@@ -97,7 +98,7 @@ Example:
 
 To visualize the image and the assignment just run **rviz** and add the topics */r_x/image* where *x* is the robot id.
 
-#### Multi-Robot System:
+#### 3. Multi-Robot System:
 
 If, instead of just one robot with multiple targets, this launcher is going to be running in multiple robots, is needed to reconfigure the bashrc.sh file in all the robots and also in the PC where the roscore is going to be executed. To each robot and the master PC add the next lines to configure a roscore abailable to all the comptuters at the same time to be able to communicate between each other.
 
