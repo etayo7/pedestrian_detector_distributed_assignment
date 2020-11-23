@@ -63,35 +63,19 @@ class image_frame:
     global img
 
     def __init__(self, N):
-        # initialize strings for each publiisher
-        pub_cost_str = 'PD_cost'
-        pub_angle_str = 'PD_angle'
         # initialize ros publisher and subscriber
         image_str = 'image'
-        self.pub_image = rospy.Publisher(image_str, Image, queue_size=1)
-
-        self.pub_cost = rospy.Publisher(pub_cost_str, IntList, queue_size=1)
-        self.pub_angle = rospy.Publisher(pub_angle_str, IntList, queue_size=1)
         image_topic = 'camera/color/image_raw'
-        image_depth_topic = 'camera/aligned_depth_to_color/image_raw'
         self.frame_received = 0
         self.imgS = rospy.Subscriber(image_topic, Image, self.callback, queue_size=1)
-        self.img_depthS = rospy.Subscriber(image_depth_topic, Image, self.callback_depth, queue_size=1)
         self.img = self.imgS
-        self.img_depth = self.img_depthS
         self.img_post = self.img
-        self.cost = [1] * np.ones((N, 1))
-        self.angle = [0] * np.ones((N * 4, 1))
         self.assign = 0
         self.assign = rospy.Subscriber('/topData', simplex, self.callback_assign, queue_size=1)
 
     def callback(self, msg):
         self.imgS = msg
         self.frame_received = 1
-        return self
-
-    def callback_depth(self, msg):
-        self.img_depthS = msg
         return self
 
     def callback_assign(self, msg):

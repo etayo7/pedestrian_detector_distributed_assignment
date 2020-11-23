@@ -1,0 +1,16 @@
+<launch>
+  <arg name="robot"		  default="1"/>
+  <arg name="N"		  	  default="3"/>
+  <arg name="colours"		  default="101 147 50 160 207 120 66 123 69"/>
+
+  <node
+    pkg="detection"
+    type="post_process.py"
+    name="Post_process_r_$(arg robot)"
+    args="$(arg N) $(arg robot) $(arg colours)"
+    ns="r_$(arg robot)"
+    output="screen"
+    respawn="true"
+  />
+
+</launch>
