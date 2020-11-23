@@ -165,6 +165,7 @@ class image_frame:
 	    	# between imageFrame and mask determines
 	    	# to detect only that particular color
 		kernal = np.ones((5, 5), "uint8")
+		ids = []
 
 		for (xA, yA, xB, yB) in PD_loc:
 			x_inc = int((xB-xA)*0.35)
@@ -190,9 +191,11 @@ class image_frame:
 
 			for color in range(N):
 				#HSV_dist[color] = abs(HSV_mean[0] - colours_value[color*3]) + abs(HSV_mean[1] - colours_value[color*3+1]) + abs(HSV_mean[2] - colours_value[color*3+2])
-				HSV_dist[color] = math.sqrt((HSV_mean[0] - colours_value[color*3])**2 + (HSV_mean[1] - colours_value[color*3+1])**2 + (HSV_mean[2] - colours_value[color*3+2])**2)
+				HSV_dist[color] = math.sqrt((1.2*(HSV_mean[0] - colours_value[color*3]))**2 + (HSV_mean[1] - colours_value[color*3+1])**2 + (HSV_mean[2] - colours_value[color*3+2])**2)
 
+			HSV_dist[ids] = 3000.0
 			id[i] = np.argmin(HSV_dist)
+			ids.append(id[i])
 			i = i+1
 		return [self, id]
 

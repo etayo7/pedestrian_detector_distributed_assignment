@@ -168,8 +168,6 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS 
-src/image_pub.py
-src/find_ball.py
 src/dk_find.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

@@ -50,6 +50,7 @@
 #include <sstream>
 #include <cmath>
 #include <ctgmath>
+#include <ctime>
 #include "std_msgs/UInt16.h"
 
 //Eigen - matrix library
@@ -189,7 +190,10 @@ int main(int argc, char **argv) {
 
   //create file to save results
   //std::string filename = "/home/osboxes/catkin_ws/src/simplex/results/robot_" + std::to_string(robot) + "_results.csv";
-  std::string filename = path + "/robot_" + std::to_string(robot) + "_results.csv";
+  time_t now = time(0);
+  // convert now to string form
+  char* dt = ctime(&now);
+  std::string filename = path + "/robot_" + std::to_string(robot) + "_results_" + dt + ".csv";
   std::ofstream myFile(filename);
   //subscribe to results flag
   ros::Subscriber flag_sub = n.subscribe<simplex::IntList>("/r_flag", 10, getFlag);
