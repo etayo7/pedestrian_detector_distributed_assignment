@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 
-# TARGETS CAMERA DETECTOR NODE - dk_find (Arg 1 = N Robots, Arg 2 = robot i, Arg 3 = costf =f(blob=0/dist=1))
-# (Args 4 = Colours of the targets)
+# TARGETS CAMERA DETECTOR NODE (post-processing) - post_process (Arg 1 = N Robots, Arg 2 = robot i)
+# (Args 3 = Colours of the targets)
 
 # Creator - Inigo Etayo
 # Directors - Eduardo Montijano, Danilo Tardioli
 
-# This node with four argument receives the frames obtained through a
+# This node with three argument receives the frames obtained through a
 # RGBD camera. At each frame tries to detect pedestrians and knowing the colours of
-# each target, is able to establish the id of each pedestrian detected. Then using
-# the depth of the camera, this node send to the assignment node the computed costs,
-# and the desired positions towards of those faces.
+# each target, is able to establish the id of each pedestrian detected. Then outputs a video
+# file with the frames processed.
 
 from __future__ import print_function
 from __future__ import division
@@ -62,12 +61,13 @@ timer = rospy.Time(0.0)
 class image_frame:
     global img
 
-    def __init__(self, N):
+    def __init__(self):
         # initialize ros publisher and subscriber
         image_str = 'image'
+        self.pub_image = rospy.Publisher(image_str, Image, queue_size=1)
         image_topic = 'camera/color/image_raw'
         self.frame_received = 0
-        self.imgS = rospy.Subscriber(image_topic, Image, self.callback, queue_size=1)
+        self.imgS = rospy.Subscriber(image_topic, Image, self.callback, queue_size=10000)
         self.img = self.imgS
         self.img_post = self.img
         self.assign = 0
@@ -208,7 +208,7 @@ class image_frame:
             cv2.rectangle(image, (xA, yA), (xB, yB), rgb, 3)
             xA2 = xA + 5
             yA2 = yA - 5
-            if ((id[i] + 1) == self.assign):
+            if (id[i] + 1) == self.assign:
                 cv2.putText(image, 'Target: {}'.format(id[i] + 1), (xA2, yA2),
                             cv2.FONT_HERSHEY_SIMPLEX,
                             0.6, [0, 0, 0], 2)
@@ -221,138 +221,27 @@ class image_frame:
         self.img_post = bridge.cv2_to_imgmsg(image, "bgr8")
         return self
 
-    def pixel2center(self, PD_loc, id, cost_function):
-        global timer
-        image = bridge.imgmsg_to_cv2(self.img_post, "bgr8")
-        height, width = image.shape[:2]
-        angle = self.angle
-        angle = [0] * (np.size(angle, 0))
-        cost = [x ** 0.5 for x in self.cost]  # mitigate detection gaps
-        i = 0
-        j = 0
-        for h in self.cost:
-            angle[j * 4] = (height / 2)
-            angle[(j * 4) + 1] = (width / 2)
-            angle[(j * 4) + 2] = 0
-            angle[(j * 4) + 3] = 0
-            j = j + 1
-
-        for (xA, yA, xB, yB) in PD_loc:
-            x = xA + ((xB - xA) / 2)
-            y = yA + (1 * (yB - yA) / 5)
-            [a, b, c, d] = self.convert_depth_image(y, x)
-            cost[id[i]] = 1.0
-            # add argument, cost = f(blob size or depth central pixel)
-            if c > 0 and cost_function == 1:
-                cost[id[i]] = (1 - (500 / c)) ** 3
-            if c > 0 and cost_function == 0:
-                size_img = height * width
-                size_blob = (xB - xA) * (yB - yA)
-                relative_size = float(size_blob / size_img)
-                cost[id[i]] = (1 - relative_size) ** 5
-            angle[id[i] * 4] = a
-            angle[(id[i] * 4) + 1] = b
-            angle[(id[i] * 4) + 2] = c
-            angle[(id[i] * 4) + 3] = d
-            if x > (3 * width / 8) and x < (5 * width / 8) and y > (height / 3) and y < (2 * height / 3):
-                angle[id[i] * 4] = 0
-                angle[(id[i] * 4) + 1] = 0
-                angle[(id[i] * 4) + 2] = 0
-                angle[(id[i] * 4) + 3] = 0
-            i = i + 1
-        if len(PD_loc) > 0:
-            timer = rospy.get_rostime()
-        else:
-            if (rospy.get_rostime() - timer) > rospy.Duration(4):
-                angle[(self.assign - 1) * 4] = 0.0
-                angle[((self.assign - 1) * 4) + 1] = 0.0
-                angle[((self.assign - 1) * 4) + 2] = 0.0
-                angle[((self.assign - 1) * 4) + 3] = 0.1
-        cost[self.assign - 1] = cost[self.assign - 1] / 1.05  # to increase the chances to assign the same target twice
-        self.angle = angle
-        self.cost = cost
-        return self
-
-    def convert_depth_image(self, fil, col):  # from Victor Fuertes TFM
-
-        global u, v, a, b
-        ros_image = self.img_depth
-        depth_image = bridge.imgmsg_to_cv2(ros_image, "passthrough")
-
-        # ask for the pixel that the user want to center
-        u = fil
-        v = col
-        b = 0
-        a = 0
-        c = 0
-        d = 0
-
-        # Convert the depth image to a Numpy array
-        depth_array = np.array(depth_image, dtype=np.float32)
-
-        # obtain the depth from the pixel (we make the average of the surroundings pixels)
-        arrows = 5
-        colums = arrows
-        arrow = int(u - (arrows - 1) / 2)
-        colum = int(v - (colums - 1) / 2)
-        depth_media = np.zeros([arrows, colums], dtype=float)
-
-        for c in range(0, arrows):
-            for d in range(0, colums):
-                depth_media[c, d] = depth_array[arrow][colum]
-                colum = colum + 1
-            arrow = arrow + 1
-            colum = int(v - (colums - 1) / 2)
-
-        camera_intrinsics_fx = 613.0291137695312
-        camera_intrinsics_fy = 613.4072265625
-
-        camera_intrinsics_ppy = 250.34303283691406
-        camera_intrinsics_ppx = 322.4624938964844
-
-        # obtain the coordinate Z as the mean of the given pixel
-        # and those around it
-
-        divisor = 0
-        sum_depth = 0.0
-        z = 0.0
-
-        for c in range(0, arrows):
-            for d in range(0, colums):
-                if depth_media[c][d] != "NaN" and depth_media[c][d] != 0.0:
-                    sum_depth = sum_depth + depth_media[c][d]
-                    divisor = divisor + 1
-        if divisor > 0:
-            z = sum_depth / float(divisor)
-
-        x = (v - camera_intrinsics_ppx) * z / camera_intrinsics_fx
-        y = (u - camera_intrinsics_ppy) * z / camera_intrinsics_fy
-
-        return [x, y, z, z]
-
-
 def dk_find():
     # arguments
     n_robots = int(sys.argv[1])
     robot = int(sys.argv[2]) - 1
-    cost_function = int(sys.argv[3])
-    r_colours = sys.argv[4:-2]  # ['blue','yellow','green','red']
+    r_colours = sys.argv[3:-2]  # ['blue','yellow','green','red']
     colours_v = np.ones(np.size(r_colours, 0))
     for ii in range(np.size(r_colours, 0)):
         colours_v[ii] = float(r_colours[ii])
 
     # initialize image frame
-    image = image_frame(n_robots)
+    image = image_frame()
     rospy.init_node('dk_find', anonymous=True)
     now = rospy.get_rostime()
     t = rospy.Duration(0.1)
+    f = 0
 
     while not rospy.is_shutdown():
         secs = rospy.get_rostime() - now
-        if (image.frame_received == 1) and (secs > t):
+        if secs > t:
             now = rospy.get_rostime()
             image.img = image.imgS
-            image.img_depth = image.img_depthS
             image.img_post = image.img
             # targets detection darknet YOLO
             [image, PD_location] = image.darknet_detection()  # locate targets
@@ -362,20 +251,7 @@ def dk_find():
 
             # show targets and colours detected
             image.pub_image.publish(image.img_post)
-
-            # computing assignment depth-cost and
-            # send (x,y,z) pixels to center with PTZ
-            image = image.pixel2center(PD_location, id, cost_function)
-
-            # publish image.cost and image.angle
-            a = IntList()
-            b = IntList()
-            a.data = image.cost
-            b.data = image.angle
-            image.pub_cost.publish(a)
-            image.pub_angle.publish(b)
-
-            image.frame_received = 0
+            result = cv2.imwrite(r'\r_1\frame_{}.png'.format(f), image.img_post)
 
 
 if __name__ == '__main__':
