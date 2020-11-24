@@ -53,7 +53,7 @@ URL of the tiny weights and parameters used (already in this repository */detect
 2. Install the ROS dependencies needed through ROS and pip installations.
 3. In a terminal open the workspace folder, and run 'catkin_make'
 4. If the compiler ask for some other dependencies, install it.
-5. If the compiler do not find some .h files, try running 'catkin_make -j 1'.
+5. If the compiler do not find some .h files, try running 'catkin_make -j 1' or 'catkin_make_isolated'.
 6. When the compiler finishes, it's ready to use.
 
 ---
