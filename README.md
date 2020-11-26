@@ -88,11 +88,12 @@ robot | 1 | Id of the robot
 N | 3 | Number of targets
 costf | 0 | Relative cost = f(bounding box size=0) or f(central pixel depth=1)
 pos_max | 1.5 | Absolute limit of the servo +-pos_max(rad)
+color_select | 0 | Color identification HSV (0) or RGB (1)
 colours | 101 147 50 160 207 120 66 123 69 | Colours of the targets [HSV mean] (HSV_1, HSV_2, HSV_3)
 
 Example:
 
-**`roslaunch detection assignment_face_detector.launch robot:="2" N:="3" costf:="0" pos_max:="1.5" colours:="101 147 50 160 207 120 66 123 69"`**
+**`roslaunch detection assignment_face_detector.launch robot:="2" N:="3" costf:="0" pos_max:="1.5" color_select:="1" colours:="101 147 50 160 207 120 66 123 69"`**
 
 #### 2. Visualization:
 
