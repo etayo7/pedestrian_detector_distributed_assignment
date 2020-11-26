@@ -35,7 +35,7 @@ This ROS workspace holds some ROS packages that enable the next features:
 * imutils
 * cmake
 * catkin
-* librealsense2 (install guide: https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md)
+* librealsense2 (installation guide: https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md)
 * std_msgs
 * usb-cam
 
