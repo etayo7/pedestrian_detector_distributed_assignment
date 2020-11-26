@@ -35,7 +35,7 @@ This ROS workspace holds some ROS packages that enable the next features:
 * imutils
 * cmake
 * catkin
-* librealsense2 (install guide: https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md)
+* librealsense2 (installation guide: https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md)
 * std_msgs
 * usb-cam
 
@@ -53,7 +53,7 @@ URL of the tiny weights and parameters used (already in this repository */detect
 2. Install the ROS dependencies needed through ROS and pip installations.
 3. In a terminal open the workspace folder, and run 'catkin_make'
 4. If the compiler ask for some other dependencies, install it.
-5. If the compiler do not find some .h files, try running 'catkin_make -j 1'.
+5. If the compiler do not find some .h files, try running 'catkin_make -j 1' or 'catkin_make_isolated'.
 6. When the compiler finishes, it's ready to use.
 
 ---
@@ -88,11 +88,12 @@ robot | 1 | Id of the robot
 N | 3 | Number of targets
 costf | 0 | Relative cost = f(bounding box size=0) or f(central pixel depth=1)
 pos_max | 1.5 | Absolute limit of the servo +-pos_max(rad)
+color_select | 0 | Color identification HSV (0) or RGB (1)
 colours | 101 147 50 160 207 120 66 123 69 | Colours of the targets [HSV mean] (HSV_1, HSV_2, HSV_3)
 
 Example:
 
-**`roslaunch detection assignment_face_detector.launch robot:="2" N:="3" costf:="0" pos_max:="1.5" colours:="101 147 50 160 207 120 66 123 69"`**
+**`roslaunch detection assignment_face_detector.launch robot:="2" N:="3" costf:="0" pos_max:="1.5" color_select:="1" colours:="101 147 50 160 207 120 66 123 69"`**
 
 #### 2. Visualization:
 
