@@ -4,6 +4,7 @@
   <arg name="costf"		  default="0"/>
   <arg name="colours"		  default="101 147 50 160 207 120 66 123 69"/>
   <arg name="pos_max"		  default="1.5"/>
+  <arg name="color_select"		  default="0"/>
 
   <arg name="serial_no"           default=""/>
   <arg name="json_file_path"      default=""/>
@@ -100,7 +101,7 @@
     pkg="detection"
     type="dk_find.py"
     name="Detector_r_$(arg robot)"
-    args="$(arg N) $(arg robot) $(arg costf) $(arg colours)"
+    args="$(arg N) $(arg robot) $(arg costf) $(arg color_select) $(arg colours)"
     ns="r_$(arg robot)"
     output="screen"
     respawn="true"

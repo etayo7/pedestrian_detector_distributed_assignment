@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 # TARGETS CAMERA DETECTOR NODE - dk_find (Arg 1 = N Robots, Arg 2 = robot i, Arg 3 = costf =f(blob=0/dist=1))
-# (Args 4 = Colours of the targets)
+# (Args 4 = HSV/RGB, Args 5 = Colours of the targets)
 
 # Creator - Inigo Etayo
 # Directors - Eduardo Montijano, Danilo Tardioli
 
-# This node with four argument receives the frames obtained through a
+# This node with five argument receives the frames obtained through a
 # RGBD camera. At each frame tries to detect pedestrians and knowing the colours of
 # each target, is able to establish the id of each pedestrian detected. Then using
 # the depth of the camera, this node send to the assignment node the computed costs,
@@ -56,6 +56,7 @@ starting_time = time.time()
 frame_id = 0
 
 r = int(sys.argv[2]) - 1
+color_select = int(sys.argv[4])
 timer = rospy.Time(0.0)
 
 
@@ -160,17 +161,32 @@ class image_frame:
             # BGR(RGB color space) to
             # HSV(hue-saturation-value)
             # color space
-            hsvFrame = cv2.cvtColor(imageFrame, cv2.COLOR_BGR2HSV)
+            if color_select > 0.0: #HSV
+                hsvFrame = cv2.cvtColor(imageFrame, cv2.COLOR_BGR2HSV)
 
-            hue, sat, val = hsvFrame[:, :, 0], hsvFrame[:, :, 1], hsvFrame[:, :, 2]
-            HSV_mean = [np.mean(hue), np.mean(sat), np.mean(val)]
+                hue, sat, val = hsvFrame[:, :, 0], hsvFrame[:, :, 1], hsvFrame[:, :, 2]
+                HSV_mean = [np.mean(hue), np.mean(sat), np.mean(val)]
 
-            HSV_dist = np.ones((N, 1))
+                HSV_dist = np.ones((N, 1))
 
-            for color in range(N):
-                HSV_dist[color] = math.sqrt((1.2 * (HSV_mean[0] - colours_value[color * 3])) ** 2 + (
+                for color in range(N):
+                    HSV_dist[color] = math.sqrt((1.2 * (HSV_mean[0] - colours_value[color * 3])) ** 2 + (
                             HSV_mean[1] - colours_value[color * 3 + 1]) ** 2 + (
                                                         HSV_mean[2] - colours_value[color * 3 + 2]) ** 2)
+            else: #RGB
+                hsvFrame = imageFrame
+
+                hue, sat, val = hsvFrame[:, :, 0], hsvFrame[:, :, 1], hsvFrame[:, :, 2]
+                HSV_mean = [np.mean(hue), np.mean(sat), np.mean(val)]
+
+                HSV_dist = np.ones((N, 1))
+
+                for color in range(N):
+                    rgb = colorsys.hsv_to_rgb(float(colours_value[(color) * 3]) / 180.0,
+                                              float(colours_value[(color) * 3 + 1]) / 255.0,
+                                              float(colours_value[(color) * 3 + 2]) / 255.0)
+                    HSV_dist[color] = math.sqrt(((HSV_mean[0] - rgb[0])) ** 2 + (
+                            HSV_mean[1] - rgb[1]) ** 2 + (HSV_mean[2] - rgb[2]) ** 2)
 
             HSV_dist[ids] = 3000.0
             id[i] = np.argmin(HSV_dist)
@@ -352,7 +368,7 @@ def dk_find():
     n_robots = int(sys.argv[1])
     robot = int(sys.argv[2]) - 1
     cost_function = int(sys.argv[3])
-    r_colours = sys.argv[4:-2]  # ['blue','yellow','green','red']
+    r_colours = sys.argv[5:-2]  # ['blue','yellow','green','red']
     colours_v = np.ones(np.size(r_colours, 0))
     for ii in range(np.size(r_colours, 0)):
         colours_v[ii] = float(r_colours[ii])

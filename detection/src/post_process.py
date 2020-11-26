@@ -26,6 +26,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import Point
 from std_msgs.msg import String, Int32, Int32MultiArray
+import os
 
 # import the necessary packages
 from imutils.object_detection import non_max_suppression
@@ -58,6 +59,15 @@ r = int(sys.argv[2]) - 1
 timer = rospy.Time(0.0)
 
 
+# arguments
+n_robots = int(sys.argv[1])
+robot = int(sys.argv[2]) - 1
+r_colours = sys.argv[3:-2]  # ['blue','yellow','green','red']
+colours_v = np.ones(np.size(r_colours, 0))
+for ii in range(np.size(r_colours, 0)):
+    colours_v[ii] = float(r_colours[ii])
+
+
 class image_frame:
     global img
 
@@ -76,6 +86,7 @@ class image_frame:
     def callback(self, msg):
         self.imgS = msg
         self.frame_received = 1
+
         return self
 
     def callback_assign(self, msg):
@@ -209,11 +220,11 @@ class image_frame:
             xA2 = xA + 5
             yA2 = yA - 5
             if (id[i] + 1) == self.assign:
-                cv2.putText(image, 'Target: {}'.format(id[i] + 1), (xA2, yA2),
+                cv2.putText(image, 'Target:{}'.format(id[i] + 1), (xA2, yA2),
                             cv2.FONT_HERSHEY_SIMPLEX,
                             0.6, [0, 0, 0], 2)
             else:
-                cv2.putText(image, 'Target: {}'.format(id[i] + 1), (xA2, yA2),
+                cv2.putText(image, 'Target:{}'.format(id[i] + 1), (xA2, yA2),
                             cv2.FONT_HERSHEY_SIMPLEX,
                             0.6, [0, 0, 0], 1)
             i = i + 1
@@ -222,20 +233,15 @@ class image_frame:
         return self
 
 def dk_find():
-    # arguments
-    n_robots = int(sys.argv[1])
-    robot = int(sys.argv[2]) - 1
-    r_colours = sys.argv[3:-2]  # ['blue','yellow','green','red']
-    colours_v = np.ones(np.size(r_colours, 0))
-    for ii in range(np.size(r_colours, 0)):
-        colours_v[ii] = float(r_colours[ii])
 
     # initialize image frame
     image = image_frame()
     rospy.init_node('dk_find', anonymous=True)
     now = rospy.get_rostime()
     t = rospy.Duration(0.1)
-    f = 0
+    f = 1
+    directory = r'/home/divcore/odas-ws/src/detection/images'
+    os.chdir(directory)
 
     while not rospy.is_shutdown():
         secs = rospy.get_rostime() - now
@@ -246,12 +252,13 @@ def dk_find():
             # targets detection darknet YOLO
             [image, PD_location] = image.darknet_detection()  # locate targets
             [image, id] = image.color_detection_darknet(PD_location, n_robots,
-                                                        colours_v)  # assign each person to a target
-            image = image.final_detection(PD_location, id, colours_v)  # assign each person to a boundaing box
-
+                                                      colours_v)  # assign each person to a target
+            image = image.final_detection(PD_location, id, colours_v)  # assign each person to a bounding box
             # show targets and colours detected
             image.pub_image.publish(image.img_post)
-            result = cv2.imwrite(r'\r_1\frame_{}.png'.format(f), image.img_post)
+            img = bridge.imgmsg_to_cv2(image.img_post, "bgr8")
+            cv2.imwrite("frame{}.png".format(f), img)
+            f = f+1
 
 
 if __name__ == '__main__':
