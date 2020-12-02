@@ -28,7 +28,8 @@ This ROS workspace holds some ROS packages that enable the next features:
 
 ### ROS Dependencies:
 
-* Eigen (**Master** version with 'all' indexing capabilities)(clone git repository into 'eigen-master' folder iniside the workspace) [SHA hash 70fbcf82ed0a95b27ee68e20199a4e8e1e913268]
+* Eigen (**Master** version with 'all' indexing capabilities)(clone git repository into 'eigen-master' folder iniside the workspace) 
+[SHA hash - 70fbcf82ed0a95b27ee68e20199a4e8e1e913268]
 * cv_bridge
 * numpy
 * dlib
