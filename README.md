@@ -14,7 +14,7 @@ This ROS workspace holds some ROS packages that enable the next features:
 * _**detection**_ : Detects the targets through the camera frames, computes the assignment costs and sets the relative position of the PTZ towards each target observed. [Python]
 * _**simplex**_ : Computes the assignment in a distributed way of one of the robots known the costs and send to the PTZ the coordiantes of the assignment. [C++]
 * _**PTZ_ROS**_ : Known the coordinates of the target, gives commands to the servos of the PTZ towards the target assigned. It also initializes the PTZ.
-* _**Camera_ROS**_ : Initializes the RGB-D camera.
+* _**Camera_ROS**_ : Initializes the RGB-D camera. (Installation via librealsense2)
 
 ---
 
