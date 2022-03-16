@@ -1,118 +1,83 @@
 # Distributed dynamic sensor assignment of multiple mobile targets
-## Targets detected through object detection using deep learning
 
-Given de number of targets of the problem and the id of the robot to compute the assignment, this workspace is able to:
-- The detection node obtains frames from a RGB-D camera and at each frame tries to detect pedestrians through evaluating a YOLO detector.
-- Knowing the colours of each target, previously initializated, is able to establish the id of each pedestrian detected and send to the assignment node the relative cost associated to that target and its relative coordinates.
-- The assignment node reads the computed costs for the robot i coming from the detection node. Then, computes the assignment with a distributed simplex assignment algorithm and with the assignment obtained for the robot i to look target j, publish the desires relatives coordinates to the PTZ node 
-- The PTZ node receives those coordinates and focus towards the target using a 2 axis movement with the camera.
+## Installation guide
 
-(**Paper:** )
+### Pre-requisites
 
-This ROS workspace holds some ROS packages that enable the next features:
+- **Ubuntu** [18.04](https://releases.ubuntu.com/18.04/)*(tested)* or newer *(on your own risk)*
+- **ROS** [Melodic](https://wiki.ros.org/melodic/Installation/Ubuntu)
+  - **Python** 2.7
+- **Python** 3.2 or newer :arrow_right: `sudo apt-get install python3`
 
-* _**detection**_ : Detects the targets through the camera frames, computes the assignment costs and sets the relative position of the PTZ towards each target observed. [Python]
-* _**simplex**_ : Computes the assignment in a distributed way of one of the robots known the costs and send to the PTZ the coordiantes of the assignment. [C++]
-* _**PTZ_ROS**_ : Known the coordinates of the target, gives commands to the servos of the PTZ towards the target assigned. It also initializes the PTZ.
-* _**Camera_ROS**_ : Initializes the RGB-D camera. (Installation via librealsense2)
+- **OpenCV** 3.4.2 :arrow_right: `pip install -I opencv==3.4.2.16` then same but with `pip3`
 
----
+### ROS Dependencies
 
-### Requirements:
+- eigen (Added already as a *git submodule* from [here](https://gitlab.com/libeigen/eigen). The module should be at commit `2627e2f2`. Use `git checkout 2627e2f2e6125cf09fa32789755135e84552275b`on it if is on a different commit)
+  *Original author indicates another commit as the right one:* [SHA hash - 70fbcf82ed0a95b27ee68e20199a4e8e1e913268]
+- cv_bridge: `sudo apt-get install ros-melodic-cv-bridge`
+- numpy: `pip install numpy` & `pip3 install numpy` *(Skip if you already installed OpenCV 3.4.2)* 
+- dlib: `pip install dlib` & `pip3 install dlib`
+- imutils: `pip install imutils` & `pip3 install imutils`
+- cmake: `sudo apt-get install cmake`
+- catkin: `sudo apt-get install catkin`
+- std_msgs `sudo apt-get install ros-melodic-std-msgs`
+- usb-cam `sudo apt-get install ros-melodic-usb-cam`
+- realsense2-camera:`sudo apt-get install ros-melodic-realsense2-camera`
 
-* Ubuntu >=18.04
-* ROS Melodic
-* Python >=3.2
-* OpenCV >=3.4.2
+### YOLO detector
 
-### ROS Dependencies:
+The YOLO Darknet used is implemented in OpenCV 3.4.2 and newer. For the parameters used check [here](https://pysource.com/2019/07/08/yolo-real-time-detection-on-cpu/). They are also found in `{repo}/detection/darknet`.
 
-* Eigen (**Master** version with 'all' indexing capabilities)(clone git repository into 'eigen-master' folder iniside the workspace) 
-[SHA hash - 70fbcf82ed0a95b27ee68e20199a4e8e1e913268]
-* cv_bridge
-* numpy
-* dlib
-* imutils
-* cmake
-* catkin
-* librealsense2 (installation guide: https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md)
-* std_msgs
-* usb-cam
+### Installation steps
 
-### YOLO detector:
-The YOLO detector used in this node uses a tiny implementation of the YOLO detector to be able to compute a real time detection on CPU. 
-Yolo Darknet used already implemented in OpenCV >=3.4.2.
-URL of the tiny weights and parameters used (already in this repository */detection/darknet*): https://pysource.com/2019/07/08/yolo-real-time-detection-on-cpu/
+1. Install Ubuntu using preffered method.
+2. Install ROS Melodic, preferably the full-desktop type: `sudo apt install ros-melodic-desktop-full`. Follow the link in *pre-requisites* for more details.
+3. Install Python 3 and OpenCV using the commands given above.
+4. Install ROS packages using the commands given above.
 
----
+5. Create a catkin workspace (guide [here](https://wiki.ros.org/catkin/Tutorials/create_a_workspace)) and clone the repository into the `{workspace_path}/src` sub-folder.
+6. Open a terminal in the workspace root folder and run `catkin_make`.
+   1. If that returns errors, run `catkin_make simplex_generate_messages` and if that is successful, run `catkin_make` as normal afterwards.
+   2. If the compiler asks for any dependencies, install them.
+   3. If the compiler does not find some `.h` files, try running `catkin_make -j 1` or `catkin_make_isolated` instead of the normal command.
+7. Source everything in the `.bashrc` file, run the following commands:`
+   1. Source ROS: `echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc`
+   2. Source the workspace: `echo "source {workspace_path}/devel/setup.bash" >> ~/.bashrc`
+   3. Update current terminal session settings: `source ~/.bashrc`
 
-### Installation (ROS):
+### Test functionality
 
-0. Install ROS Melodic and source it on the setup bashrc.sh file.
-1. Clone the repository into your workspace src folder and source the workspace.
-2. Install the ROS dependencies needed through ROS and pip installations.
-3. In a terminal open the workspace folder, and run 'catkin_make'
-4. If the compiler ask for some other dependencies, install it.
-5. If the compiler do not find some .h files, try running 'catkin_make -j 1' or 'catkin_make_isolated'.
-6. When the compiler finishes, it's ready to use.
+(Using turtlebots and Intel RealSense cameras)
 
----
+#### Camera functionality
 
-### Running:
+Connect the camera to the PC via a USB 3 port. If working on a VM, connect the camera to the VM instead of the host OS. In a terminal, run `lsusb` and check for an Intel RealSense device.
 
-(Previously to launch the nodes, give permissions to the PTZ USB connection: `sudo chmod 666 /dev/ttyUSB0`)
+Run `ls -l /dev/` and identify the camera there. It should look like `ttyUSB0`. Change the rights to the camera with `sudo chmod 666 /dev/{camera_identifier}`.
 
-#### 0. Color initialization launcher:
+Run `realsense-viewer`. Make sure that the camera is detected, turn on the <u>Stereo Module</u> and the <u>RGB Camera</u> and if everything displays right, the camera itself is working properly.
 
-_**color_initialization**_
+To test if it works with ROS:
 
-To obtain the mean of the colours used by each target. Later, the HSV mean values associated to each target will be used to run the full launcher and to differentiate each target.
+- start the OS (run `roscore` and leave it in the background)
+- start a node that captures camera data: `roslaunch realsense2_camera rs_camera.launch`
+- run the visualizer tool: `rviz`
+- In the visualizer tool
+  -  in the left panel set the *Fixed Frame* to `camera_depth_frame`
+  - Click on the lower left button `Add - By topic - /camera/color/image_raw - Image` and click OK
+  - Repeat and add `/camera/depth/image_rect_raw - DepthCloud` and click OK
 
-Argument | Default | Description
------------- | ------------- | -------------
-N | 3 | Number of targets
+If rviz shows both the image and the 3D projection, then everything is working fine.
 
-Example:
+#### Detection package
 
-**`roslaunch detection color_initialization.launch N:="3"`**
+###### Color initialization
 
-#### 1. Full launcher:
+To initialize the detection module with the colors of the targets, use:
 
-This launcher initializes the PTZ and the camera. Then, runs the detection node, the assignment node and the PTZ movement node.
+`roslaunch detection color_initialization.launch N:="<no. of targets>"`
 
-_**assignment_face_detector**_
+Optionally add the parameter `initial_reset:=true` to reset the camera at launch and prevent hardware errors.
 
-Argument | Default | Description
------------- | ------------- | -------------
-robot | 1 | Id of the robot
-N | 3 | Number of targets
-costf | 0 | Relative cost = f(bounding box size=0) or f(central pixel depth=1)
-pos_max | 1.5 | Absolute limit of the servo +-pos_max(rad)
-color_select | 0 | Color identification HSV (0) or RGB (1)
-colours | 101 147 50 160 207 120 66 123 69 | Colours of the targets [HSV mean] (HSV_1, HSV_2, HSV_3)
-
-Example:
-
-**`roslaunch detection assignment_face_detector.launch robot:="2" N:="3" costf:="0" pos_max:="1.5" color_select:="1" colours:="101 147 50 160 207 120 66 123 69"`**
-
-#### 2. Visualization:
-
-To visualize the image and the assignment just run **rviz** and add the topics */r_x/image* where *x* is the robot id.
-
-#### 3. Multi-Robot System:
-
-If, instead of just one robot with multiple targets, this launcher is going to be running in multiple robots, is needed to reconfigure the bashrc.sh file in all the robots and also in the PC where the roscore is going to be executed. To each robot and the master PC add the next lines to configure a roscore abailable to all the comptuters at the same time to be able to communicate between each other.
-
-**Master PC:**
-
-export ROS_MASTER_URI=http://192.168.1.XXX:11311
-
-**Each robot:**
-
-export ROS_MASTER_URI=http://192.168.1.XXX:11311
-
-export ROS_HOSTNAME=192.168.1.YYY
-
-export ROS_IP=192.168.1.YYY
-
-*(XXX = IP of master PC // YYY = IP of each robot)*
+Running this should return the HSV-style median color of each target, which can then be used in the assignment problem.

@@ -41,9 +41,9 @@ import imutils
 bridge = CvBridge()
 
 # Load YOLO
-weight_path = "/home/divcore/odas-ws/src/detection/darknet/yolov3-tiny.weights"
-tiny_path = "/home/divcore/odas-ws/src/detection/darknet/yolov3-tiny.cfg"
-names_path = "/home/divcore/odas-ws/src/detection/darknet/coco.names"
+weight_path = "/home/mircea98ro/catkin_ws/src/pedestrian_detector_distributed_assignment/detection/darknet/yolov3-tiny.weights"
+tiny_path = "/home/mircea98ro/catkin_ws/src/pedestrian_detector_distributed_assignment/detection/darknet/yolov3-tiny.cfg"
+names_path = "/home/mircea98ro/catkin_ws/src/pedestrian_detector_distributed_assignment/detection/darknet/coco.names"
 net = cv2.dnn.readNet(weight_path, tiny_path)
 classes = []
 with open(names_path, "r") as f:
