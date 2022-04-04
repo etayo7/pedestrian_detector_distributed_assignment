@@ -1,0 +1,22 @@
+<launch>
+  <arg name="launch_cam_node"     default="false"/>
+  <arg name="robot"		            default="1"/>
+  <arg name="min_confidence"      default="0.4"/>
+  <arg name="max_overlap"         default="0.8"/>
+
+  <group if="$(arg launch_cam_node)">
+    <include file="$(find camera_node)/launch/camera_node.launch">
+      <arg name="robot"		                 value="$(arg robot)"/>
+    </include>
+  </group>
+
+  <node
+    pkg="detection"
+    type="target_boxplot_track.py"
+    name="target_boxplot_track"
+    ns="r_$(arg robot)"
+    args="$(arg min_confidence) $(arg max_overlap)"
+    output="screen"
+  />
+
+</launch>
