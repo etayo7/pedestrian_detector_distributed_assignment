@@ -6,6 +6,7 @@
   <arg name="respawn"             default="true"/>
   <arg name="initial_reset"       default="true"/>
   <arg name="reconnect_timeout"   default="10.0"/>
+  <arg name="required"            default="false"/>
 
 
   <arg name="serial_no"           default=""/>
@@ -62,6 +63,7 @@
       <arg name="respawn"                  value="$(arg respawn)"/>
       <arg name="initial_reset"            value="$(arg initial_reset)"/>
       <arg name="reconnect_timeout"        value="$(arg reconnect_timeout)"/>
+      <arg name="required"                 value="$(arg required)"/>
 
       <arg name="tf_prefix"                value="$(arg tf_prefix)"/>
       <arg name="external_manager"         value="$(arg external_manager)"/>
