@@ -11,7 +11,6 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   roscpp
   cv_bridge
-  librealsense2
   std_msgs
   sensor_msgs
   usb_cam
@@ -110,7 +109,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES camera_node
-#  CATKIN_DEPENDS cv_bridge librealsense2 std_msgs usb_cam
+#  CATKIN_DEPENDS cv_bridge std_msgs usb_cam
 #  DEPENDS system_lib
 )
 
