@@ -26,6 +26,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import String, Int32, Int32MultiArray
 from torchreid.utils import FeatureExtractor
 from scipy.spatial import distance
+from scipy.optimize import linear_sum_assignment
 
 import argparse
 import imutils
@@ -307,71 +308,44 @@ class Frame:
         #     gallery.assignment = -1
         
         descriptor = []
-        for window in self.osnet_windows:
-            cropped = self.image_process[int(window.x):int(window.x + window.w - 1), int(window.y):int(window.y + window.h - 1)]
-            cropped = imutils.resize(cropped, width = 128, height = 256)
-            descriptor.append(Frame.extractor(cropped))
-            gallery_score = []
-            for gallery in self.features_gallery:
-                scores = []
-                for element in gallery:
-                    scores.append(distance.cosine(descriptor[len(descriptor)-1], element))
-                gallery_score.append(np.min(scores))
-            window_scores.append(gallery_score)
-        
-        assigned = 0
-        w_available = len(self.osnet_windows)
-        g_available = len(self.features_gallery)
+        try:
+            for window in self.osnet_windows:
+                cropped = self.image_process[int(window.x):int(window.x + window.w - 1), int(window.y):int(window.y + window.h - 1)]
+                cropped = imutils.resize(cropped, width = 128, height = 256)
+                descriptor.append(Frame.extractor(cropped))
+                gallery_score = []
+                for gallery in self.features_gallery:
+                    scores = []
+                    for element in gallery:
+                        scores.append(distance.cosine(descriptor[len(descriptor)-1], element))
+                    gallery_score.append(np.min(scores))
+                window_scores.append(gallery_score)
 
-        window_scores = np.matrix(window_scores)
-        while assigned < len(self.osnet_windows) and w_available > 0 and g_available > 0:
-            w, g = np.where(window_scores == np.amax(window_scores))
-            w = w[0]
-            g = g[0]
-            self.assignments[w] = g
-            if len(self.features_gallery[g]) > 1:
-                self.features_gallery[g].popleft()
-            self.features_gallery[g].append(descriptor[w])
-            window_scores[:,g] = -1
-            window_scores[w,:] = -1
-            g_available -= 1
-            w_available -= 1
+            window_scores = np.matrix(window_scores)
+            
+            row_index, col_index = linear_sum_assignment(window_scores)
 
-        # window_scores_sparse = []
-        # flag = 0
-        # for i in range(len(window_scores)):
-        #     for j in range(len(window_scores[0])):
-        #         window_scores_sparse.append([window_scores[i, j], i, j])
-        #         flag = 1
-        
-        # if flag == 1:
-        #     window_scores_sparse = window_scores_sparse[window_scores_sparse[:, 0].argsort()]
+            for i in range(len(row_index)):
+                if window_scores[row_index[i], col_index[i]] > 0.5:
+                    continue
+                self.assignments[row_index[i]] = col_index[i]
+                if len(self.features_gallery[col_index[i]]) > 5:
+                    self.features_gallery[col_index[i]].popleft()
+                self.features_gallery[col_index[i]].append(descriptor[row_index[i]])
+            
+            for index in range(len(self.assignments)):
+                if (self.assignments[index] == -1):
+                    gal = deque()
+                    gal.append(descriptor[index])
+                    self.features_gallery.append(gal)
+                    self.assignments[index] = len(self.features_gallery) - 1
+            print(self.assignments)
+                # print(type(descriptor))
+                # print(descriptor.shape)
 
-        # assigned = 0
-        # i = 0
-        # while assigned < len(self.osnet_windows) and assigned < len(window_scores_sparse):
-        #     self.assignments[window_scores_sparse[i, 1]] = window_scores_sparse[i, 2]
-        #     for j in range(i,len(window_scores_sparse)):
-        #         if (window_scores_sparse[i, 1] == window_scores_sparse[j, 1]):
-
-
-        # results = np.argsort(window_scores, axis=0)
-        
-        # for i in range(results.shape[1]):
-        #     self.assignments[results[0, i]] = i
-        #     if len(self.features_gallery[i]) > 5:
-        #         self.features_gallery[i].popleft()
-        #     self.features_gallery[i].append(descriptor)
-
-        for index in range(len(self.assignments)):
-            if (self.assignments[index] == -1):
-                gal = deque()
-                gal.append(descriptor[index])
-                self.features_gallery.append(gal)
-                self.assignments[index] = len(self.features_gallery) - 1
-        print(self.assignments)
-            # print(type(descriptor))
-            # print(descriptor.shape)
+            
+        except Exception as e:
+            print(str(e))
         return
 
 
