@@ -63,7 +63,7 @@ class Monitor:
             img : Image = None
             while self._msg_img:
                 img = self._msg_img.popleft()
-                if img.header.seq >= data.frame_seq:
+                if img.header.timestamp < data.frame_seq:
                     break
             return self.ReceivePack(img, data)
 

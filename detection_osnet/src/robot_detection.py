@@ -61,7 +61,7 @@ class Robot:
             if (type(sys.argv[1]) is int):
                 self.detection_level = sys.argv[1]
         except Exception:
-            self.detection_level = DETECT_LVL_OSNET
+            self.detection_level = DETECT_LVL_YOLO
 
         try:
             self.dynamic_gallery = sys.argv[2]
