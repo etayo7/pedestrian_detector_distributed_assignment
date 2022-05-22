@@ -4,6 +4,7 @@
 
 ### Pre-requisites
 
+For old algorithm:
 - **Ubuntu** [18.04](https://releases.ubuntu.com/18.04/)*(tested)* or newer *(on your own risk)*
 - **ROS** [Melodic](https://wiki.ros.org/melodic/Installation/Ubuntu)
   - **Python** 2.7
@@ -11,19 +12,31 @@
 
 - **OpenCV** 3.4.2 :arrow_right: `pip install -I opencv==3.4.2.16` then same but with `pip3`
 
+For new detection method:
+
+
+  ❗If using also Python 2 on the same machine, use `pip3` instead of `pip` everywhere.❗
+  
+- **Ubuntu** [20.04](https://releases.ubuntu.com/20.04/)*(tested)* or newer *(on your own risk)*
+- **ROS** [Noetic](https://wiki.ros.org/noetic/Installation/Ubuntu)
+- **Python** 3.8 or newer :arrow_right: `sudo apt-get install python3` *(should be included by default while installing Ubuntu/ROS Noetic)*
+- **OpenCV** 3.4.2 or newer :arrow_right: `pip install opencv`
+- **PyTorch** 1.11.0 or newer :arrow_right: `pip install torch torchvision torchaudio` *(or use your preferred [way of installing](https://pytorch.org/get-started/locally/). The project is supposed to use just the CPU, no GPU)*
+  - **Torchreid** v1.0.6 or newer :arrow_right: Follow instructions [here](https://github.com/KaiyangZhou/deep-person-reid), ignoring the parts with `conda`
+
 ### ROS Dependencies
 
 - eigen (Added already as a *git submodule* from [here](https://gitlab.com/libeigen/eigen). The module should be at commit `2627e2f2`. Use `git checkout 2627e2f2e6125cf09fa32789755135e84552275b`on it if is on a different commit)
   *Original author indicates another commit as the right one:* [SHA hash - 70fbcf82ed0a95b27ee68e20199a4e8e1e913268]
-- cv_bridge: `sudo apt-get install ros-melodic-cv-bridge`
-- numpy: `pip install numpy` & `pip3 install numpy` *(Skip if you already installed OpenCV 3.4.2)* 
-- dlib: `pip install dlib` & `pip3 install dlib`
-- imutils: `pip install imutils` & `pip3 install imutils`
-- cmake: `sudo apt-get install cmake`
-- catkin: `sudo apt-get install catkin`
-- std_msgs `sudo apt-get install ros-melodic-std-msgs`
-- usb-cam `sudo apt-get install ros-melodic-usb-cam`
-- realsense2-camera:`sudo apt-get install ros-melodic-realsense2-camera`
+- cv_bridge: `sudo apt-get install ros-noetic-cv-bridge`
+- numpy: `pip install numpy` *(Skip if you already installed OpenCV)* 
+- dlib: `pip install dlib`
+- imutils: `pip install imutils`
+- cmake: `sudo apt-get install cmake` *(should be installed)*
+- catkin: `sudo apt-get install catkin` *(should be installed)*
+- std_msgs `sudo apt-get install ros-noetic-std-msgs` *(should be installed)*
+- usb-cam `sudo apt-get install ros-noetic-usb-cam` *(should be installed)*
+- realsense2-camera:`sudo apt-get install ros-noetic-realsense2-camera`
 
 ### YOLO detector
 
@@ -32,10 +45,9 @@ The YOLO Darknet used is implemented in OpenCV 3.4.2 and newer. For the paramete
 ### Installation steps
 
 1. Install Ubuntu using preffered method.
-2. Install ROS Melodic, preferably the full-desktop type: `sudo apt install ros-melodic-desktop-full`. Follow the link in *pre-requisites* for more details.
-3. Install Python 3 and OpenCV using the commands given above.
-4. Install ROS packages using the commands given above.
-
+2. Install Python 3, OpenCV, PyTorch and Torchreid as described above.❗As of May 2022, installing ROS before Torchreid prevents deployment of Torchreid due to the 2 having a common dependency `Pillow` but on different versions. Workaround: Install Torchreid before ROS.
+3. Install ROS Noetic, preferably the full-desktop type: `sudo apt install ros-melodic-desktop-full`. Follow the link in *pre-requisites* for more details.
+4. Install ROS dependencies using the commands given above.
 5. Create a catkin workspace (guide [here](https://wiki.ros.org/catkin/Tutorials/create_a_workspace)) and clone the repository into the `{workspace_path}/src` sub-folder.
 6. Open a terminal in the workspace root folder and run `catkin_make`.
    1. If that returns errors, run `catkin_make simplex_generate_messages` and if that is successful, run `catkin_make` as normal afterwards.
@@ -72,12 +84,8 @@ If rviz shows both the image and the 3D projection, then everything is working f
 
 #### Detection package
 
-###### Color initialization
-
-To initialize the detection module with the colors of the targets, use:
-
-`roslaunch detection color_initialization.launch N:="<no. of targets>"`
-
-Optionally add the parameter `initial_reset:=true` to reset the camera at launch and prevent hardware errors.
-
-Running this should return the HSV-style median color of each target, which can then be used in the assignment problem.
+- Launch a camera node using `roslaunch camera_node camera_node`, or play a pre-recorded rosbag file.
+- Launch a terminal in the `detection_osnet/src/` subfolder
+- Use the terminal to launch a robot node `python robot_detection.py`
+- Use a terminal to launch a master node `python master.py`. The node prints the overall statistics upon termination.
+- Use rviz/rqt for visualizing the resulted images. Use your favorite tool for visualizing the statistics (recommended [PlotJuggler](https://github.com/PlotJuggler/plotjuggler-ros-plugins))
