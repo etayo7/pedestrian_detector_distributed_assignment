@@ -1,0 +1,13 @@
+osnet_descriptor_size: 5
+osnet_max_distance: 0.4
+osnet_model: osnet_ain_x0_25
+osnet_path: /home/mircea98ro/catkin_ws/src/pedestrian_detector_distributed_assignment/detection_osnet/src/../osnet_data
+osnet_window_ratio: 2
+osnet_window_w: 128
+yolo_cfg: yolov3-tiny.cfg
+yolo_max_count: 10
+yolo_max_overlap: 0.5
+yolo_min_score: 0.5
+yolo_names: coco.names
+yolo_path: /home/mircea98ro/catkin_ws/src/pedestrian_detector_distributed_assignment/detection_osnet/src/../../detection/darknet
+yolo_weight: yolov3-tiny.weights
