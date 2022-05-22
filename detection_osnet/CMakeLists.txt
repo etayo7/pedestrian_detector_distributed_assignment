@@ -58,6 +58,7 @@ add_message_files(
   ProcessData.msg
   Accuracy.msg
   MonitorUpdate.msg
+  WindowPack.msg
 )
 
 ## Generate services in the 'srv' folder
