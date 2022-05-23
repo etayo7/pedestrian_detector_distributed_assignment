@@ -61,7 +61,7 @@ class ReID:
         self.dataS = message_filters.TimeSynchronizer([imgS, yoloS], 1)
         self.dataS.registerCallback(self.callback)
 
-        self.dataP = rospy.Publisher('processing/osnet', WindowPack)
+        self.dataP = rospy.Publisher('processing/osnet', WindowPack, queue_size=1)
 
         self.rcv = None
         self.wp = None
@@ -82,29 +82,30 @@ class ReID:
             model_name=self.files.model, model_path=self.files.getPath(), device=device)
         rospy.loginfo("OSNET network initialized succesfully.")
 
-    def callback(self, img : Image, wp : WindowPack):
+    def callback(self, rcv : Image, wp : WindowPack):
         if self.pending:
             return
+        # rospy.logdebug("ReID received message")
         self.pending = True
-        self.rcv = img
+        self.rcv = rcv
         self.wp = wp
         pass
 
     def detect(self):
 
-        height, width, channels = self.rcv.shape
         img = bridge.imgmsg_to_cv2(self.rcv, "bgr8")
+        height, width, channels = img.shape
         
         window_scores = []
 
         if (self.params is not None):
             for pw in self.wp.data:
                 # Consider desired aspect ratio 1:2 (w:h)
-                diff = pw.window.h - pw.window.w*reid.params.window_ratio
+                diff = pw.window.h - pw.window.w*self.params.window_ratio
                 if diff > 0:
-                    pw.window.w = int(pw.window.h / reid.params.window_ratio)
+                    pw.window.w = int(pw.window.h / self.params.window_ratio)
                 elif diff < 0:
-                    pw.window.h = int(pw.window.w * reid.params.window_ratio)
+                    pw.window.h = int(pw.window.w * self.params.window_ratio)
         
         descriptor = []
         try:
@@ -154,6 +155,7 @@ class ReID:
             
         self.wp.timestamp = rospy.Time.now()
         self.dataP.publish(self.wp)
+        # rospy.logdebug("ReID sent data")
         self.pending = False
         
 
@@ -169,7 +171,7 @@ def reid():
             rospy.get_param("cfg/reid/window_ratio"), 
             rospy.get_param("cfg/reid/max_distance"), 
             rospy.get_param("cfg/reid/dynamic_gallery"), 
-            rospy.get_param("master/target_no"), 
+            rospy.get_param("/master/target_no"), 
             rospy.get_param("cfg/reid/redo_yolo_windows")
             )
     except Exception:
