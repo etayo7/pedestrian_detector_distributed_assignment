@@ -25,11 +25,19 @@ def cfg_creator():
     rospy.set_param('cfg/reid/redo_yolo_windows', 0)
     rospy.set_param('cfg/reid/dynamic_gallery', 1)
 
-    rospy.set_param('master/robot_no', 1)
-    rospy.set_param('master/target_no', 3)
+    rospy.set_param('cfg/kalman/source', 'osnet')
+
+    rospy.set_param('/master/robot_no', 1)
+    rospy.set_param('/master/target_no', 3)
+
+    rospy.set_param('cfg/monitor/level', 'yolo')
 
 #   Guard
-if __name__ == '__main__':    
+if __name__ == '__main__':
 
     # Launch in execution
-    cfg_creator()
+    try:
+        cfg_creator()
+    except Exception:
+        rospy.logerr("Config generation error!")
+        pass
