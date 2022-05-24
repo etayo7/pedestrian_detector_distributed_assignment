@@ -141,8 +141,9 @@ class ReID:
                 if len(self.feature_galleries[col_index[i]]) < self.params.descriptor_size:
                     self.feature_galleries[col_index[i]].append(descriptor[row_index[i]])
             
-            if len(self.feature_galleries) < self.params.targets:
-                for index in range(len(self.wp.data)):
+            
+            for index in range(len(self.wp.data)):
+                if len(self.feature_galleries) < self.params.targets:
                     if (self.wp.data[index].assignment == 0):
                         gal = deque()
                         gal.append(descriptor[index])
