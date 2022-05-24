@@ -3,6 +3,7 @@
 #   Imports
 
 import os
+from typing import List
 os.environ["ROS_NAMESPACE"] = "/r_1"
 from dataclasses import dataclass
 
@@ -30,7 +31,9 @@ class Kalman:
         self.pending = False
         self.rcv : WindowPack = None
 
-        self.kf : list = [KalmanFilter()]
+        self.kf : List['KalmanFilter'] = []
+
+        self.next : List['Window'] = []
 
     def process(self):
 
@@ -38,78 +41,25 @@ class Kalman:
         for  window in self.rcv.data:
             while window.assignment > len(self.kf):
                 self.kf.append(KalmanFilter())
+            while window.assignment > len(self.next):
+                self.next.append(Window())
+            self.next[window.assignment - 1] = window.window
 
-        next = self.rcv
+            aux = numpy.array([self.next[i].x, self.next[i].y], numpy.float32)
+            self.kf[window.assignment - 1].correct(aux)
 
-        for window in next.data:
-            aux = numpy.array([window.window.x, window.window.y], numpy.float32)
-            self.kf[window.assignment].correct(aux)
-            window.x, window.y = self.kf[window.assignment].predict()
+        msg = WindowPack()
 
-        next.timestamp = rospy.Time.now()
-        self.dataP.publish(next)
+        for i in range(len(self.kf)):
+            if next[i].x == next[i].y == next[i].h == next[i].w == 0:
+                continue
+            next[i].x, next[i].y = self.kf[i].predict()
+            msg.data.append(ProcessWindow(window = next[i], assignment = i + 1))
+
+        msg.header.stamp = self.rcv.header.stamp
+        msg.timestamp = rospy.Time.now()
+        self.dataP.publish(msg)
         self.pending = False
-        
-            
-    def filter_windows(self, boxes: list):
-        # Picked indexes
-        pick = []
-
-        # Array of box coordintates
-        x_start = []
-        y_start = []
-        x_end = []
-        y_end = []
-        a = []
-
-        for box in boxes:
-            dh = int(box.h/2)
-            dw = int(box.w/2)
-            x_start.append(box.x - dw)
-            y_start.append(box.y - dh)
-            x_end.append(box.x + dw)
-            y_end.append(box.y + dh)
-            a.append(box.h*box.w)
-
-        x_start = numpy.array(x_start)
-        y_start = numpy.array(y_start)
-        x_end = numpy.array(x_end)
-        y_end = numpy.array(y_end)
-        a = numpy.array(a)
-
-        # Sort boxes based on closeness to the camera
-        indexes = numpy.argsort(y_end)
-        # indexes = indexes.tolist()
-        while len(indexes):
-            end = len(indexes) - 1
-            curr_index = indexes[end]
-            # Pick the box
-            pick.append(curr_index)
-
-            # Find the largest overlapping box
-            overlap_x_start = numpy.maximum(
-                x_start[curr_index], x_start[indexes[:end]])
-            overlap_y_start = numpy.maximum(
-                y_start[curr_index], y_start[indexes[:end]])
-            overlap_x_end = numpy.minimum(
-                x_end[curr_index], x_end[indexes[:end]])
-            overlap_y_end = numpy.minimum(
-                y_end[curr_index], y_end[indexes[:end]])
-
-            # Compute width and height of the overlapping box
-            w = numpy.maximum(0, overlap_x_end - overlap_x_start + 1)
-            h = numpy.maximum(0, overlap_y_end - overlap_y_start + 1)
-
-            # Compute ratio of overlap
-            overlap = (w * h) / a[indexes[:end]]
-
-            # Delete indexes that go past the overlap threshold
-            indexes = numpy.delete(indexes, numpy.concatenate(
-                ([end], numpy.where(overlap > self.params.max_overlap)[0])))
-
-        # Pick the windows
-        return pick
-
 
     def callback(self, msg : WindowPack):
         if self.pending == True:
