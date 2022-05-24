@@ -37,24 +37,34 @@ class Kalman:
 
     def process(self):
 
+        skip_kalman = []
         window : ProcessWindow
         for  window in self.rcv.data:
             while window.assignment > len(self.kf):
-                self.kf.append(KalmanFilter())
+                self.kf.append(KalmanFilter(4,2))
+                self.kf[len(self.kf) - 1].measurementMatrix = numpy.array([[1, 0, 0, 0], 
+                                                                           [0, 1, 0, 0]], numpy.float32)
+                self.kf[len(self.kf) - 1].transitionMatrix = numpy.array([[1, 0, 1, 0], 
+                                                                          [0, 1, 0, 1], 
+                                                                          [0, 0, 1, 0], 
+                                                                          [0, 0, 0, 1]], numpy.float32)
+                self.kf[len(self.kf) - 1].processNoiseCov = numpy.eye(4, dtype = numpy.float32) * 0.03 
             while window.assignment > len(self.next):
                 self.next.append(Window())
             self.next[window.assignment - 1] = window.window
+            skip_kalman.append(window.assignment - 1)
 
-            aux = numpy.array([self.next[i].x, self.next[i].y], numpy.float32)
+            aux = numpy.array((self.next[window.assignment - 1].x, self.next[window.assignment - 1].y), numpy.float32)
             self.kf[window.assignment - 1].correct(aux)
 
         msg = WindowPack(img = self.rcv.img)
 
         for i in range(len(self.kf)):
-            if next[i].x == next[i].y == next[i].h == next[i].w == 0:
-                continue
-            next[i].x, next[i].y = self.kf[i].predict()
-            msg.data.append(ProcessWindow(window = next[i], assignment = i + 1))
+            if (i in skip_kalman) == False:
+                measurement = self.kf[i].predict()
+                self.next[i].x = measurement[0]
+                self.next[i].y = measurement[1]
+            msg.data.append(ProcessWindow(window = self.next[i], assignment = i + 1))
 
         msg.header.stamp = self.rcv.header.stamp
         msg.timestamp = rospy.Time.now()

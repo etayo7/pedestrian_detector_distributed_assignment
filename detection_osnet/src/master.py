@@ -42,7 +42,7 @@ class Master:
                     [87, 117, 144],
                     [39, 125, 161]
                 ]
-        colors = numpy.array(colors, ndmin=2)
+        # colors = numpy.array(colors, ndmin=2)
 
         try:
             for i in range(self.robot_no):

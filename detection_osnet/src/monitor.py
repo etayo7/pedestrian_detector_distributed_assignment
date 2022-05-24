@@ -77,7 +77,7 @@ class Monitor:
     def callback(self, msg : WindowPack):
         if self.pending:
             return
-        rospy.loginfo("Monitor RX!")
+        # rospy.loginfo("Monitor RX!")
         self.rcv = msg
         self.pending = True
 
@@ -163,7 +163,7 @@ class Monitor:
                 cv2.putText(img_cv2, txt, (xLeft + 1, yUp + int(txtbox_h/2)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, txtcolor, 1)
 
                 self.writer.write_frame(img = self.bridge.cv2_to_imgmsg(img_cv2, "bgr8"), data = MonitorUpdate(accuracy = accuracy, frame_loss = lost_frames))
-                self.pending = False
+        self.pending = False
 
     def summary(self):
         try:
