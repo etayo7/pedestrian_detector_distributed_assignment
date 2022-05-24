@@ -49,8 +49,8 @@ class Monitor:
         
 
         self.rcv : self.ReceivePack
-        imgS = message_filters.Subscriber(f'/r_{ns}/camera/color/image_raw', Image)
-        dataS = message_filters.Subscriber(f'/r_{ns}/processing/{source}', WindowPack)
+        imgS = message_filters.Subscriber(f'/r_{ns}/camera/color/image_raw', Image, queue_size = 1000)
+        dataS = message_filters.Subscriber(f'/r_{ns}/processing/{source}', WindowPack, queue_size = 1000)
         self.reader = message_filters.ApproximateTimeSynchronizer([imgS, dataS], 10000, slop = 10000, reset=True)
         self.reader.registerCallback(self.callback)
 
