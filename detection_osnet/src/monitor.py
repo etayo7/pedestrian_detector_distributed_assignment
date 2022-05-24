@@ -31,10 +31,6 @@ class Monitor:
         avg_accuracy_percent : numpy.float64
         avg_frame_loss_percent : numpy.float64
 
-    class ReceivePack(NamedTuple):
-        img: Image
-        wp: WindowPack
-
     class Writer:
 
         def __init__(self, ns: str = None, post_queue_len: int = 1):
@@ -48,11 +44,8 @@ class Monitor:
     def __init__(self, bridge : CvBridge, colors : numpy.array = None, ns : str = None, data_queue_len: int = 1, raw_img_queue_len: int = 1, post_queue_len: int = 1, target_no : int = 0, source : str = None):
         
 
-        self.rcv : self.ReceivePack
-        imgS = message_filters.Subscriber(f'/r_{ns}/camera/color/image_raw', Image, queue_size = 1000)
-        dataS = message_filters.Subscriber(f'/r_{ns}/processing/{source}', WindowPack, queue_size = 1000)
-        self.reader = message_filters.ApproximateTimeSynchronizer([imgS, dataS], 10000, slop = 10000, reset=True)
-        self.reader.registerCallback(self.callback)
+        self.rcv : WindowPack
+        self.reader = rospy.Subscriber(f'/r_{ns}/processing/{source}', WindowPack, self.callback, queue_size = 1)
 
         self.writer = self.Writer(ns, post_queue_len)
 
@@ -81,11 +74,11 @@ class Monitor:
 
         
 
-    def callback(self, rcvImg, rcvData):
+    def callback(self, msg : WindowPack):
         if self.pending:
             return
         rospy.loginfo("Monitor RX!")
-        self.rcv = self.ReceivePack(img = rcvImg, wp = rcvData)
+        self.rcv = msg
         self.pending = True
 
     def service(self):
@@ -93,7 +86,7 @@ class Monitor:
         now = rospy.Time.now()
 
         # Processing time
-        self.process_time = self.rcv.wp.timestamp - self.rcv.img.header.stamp
+        self.process_time = self.rcv.timestamp - self.rcv.img.header.stamp
         self.total_process_time += self.process_time
 
         # Frame Loss
@@ -109,13 +102,13 @@ class Monitor:
         accuracy = Accuracy(0, 0, 0, 0)
         # Accuracy
         if self.level == DETECT_LVL_YOLO:
-            accuracy.correct = min(len(self.rcv.wp.data), self.target_no)
-            if len(self.rcv.wp.data) > self.target_no:
-                accuracy.extra = len(self.rcv.wp.data) - self.target_no
+            accuracy.correct = min(len(self.rcv.data), self.target_no)
+            if len(self.rcv.data) > self.target_no:
+                accuracy.extra = len(self.rcv.data) - self.target_no
             else:
-                accuracy.missing = self.target_no - len(self.rcv.wp.data)
+                accuracy.missing = self.target_no - len(self.rcv.data)
         elif self.level > DETECT_LVL_YOLO: # For tests where each person keeps its lane
-            pw = sorted(self.rcv.wp.data, key = sortKeyProcessWindow) # Sort windows from leftmost to the right
+            pw = sorted(self.rcv.data, key = sortKeyProcessWindow) # Sort windows from leftmost to the right
             accuracy.missing = self.target_no
             for i in range(len(pw)):
                 accuracy.correct += (i - accuracy.extra == pw[i].assignment)
@@ -141,7 +134,7 @@ class Monitor:
             txtbox_w = int(width/10)
 
             pw : ProcessWindow
-            for pw in self.rcv.wp.data:
+            for pw in self.rcv.data:
                 xLeft = int(max(0, pw.window.x - pw.window.w/2))
                 yUp = int(max(0, pw.window.y - pw.window.h/2))
                 xRight = int(min(width, pw.window.x + pw.window.w/2 - 1))

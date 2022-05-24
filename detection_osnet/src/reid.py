@@ -55,15 +55,10 @@ class ReID:
 
     def __init__(self, files: ReIDFiles, params: ReIDParameters = None, galleries: list = None, device: str = 'cpu'):
 
-        imgS = message_filters.Subscriber('camera/color/image_raw', Image)
-        yoloS = message_filters.Subscriber('processing/yolo', WindowPack)
-
-        self.dataS = message_filters.TimeSynchronizer([imgS, yoloS], 1)
-        self.dataS.registerCallback(self.callback)
+        self.dataS = rospy.Subscriber('processing/yolo', WindowPack, self.callback, queue_size = 1)
 
         self.dataP = rospy.Publisher('processing/osnet', WindowPack, queue_size=1)
 
-        self.rcv = None
         self.wp = None
 
         self.pending = False
@@ -82,18 +77,17 @@ class ReID:
             model_name=self.files.model, model_path=self.files.getPath(), device=device)
         rospy.loginfo("OSNET network initialized succesfully.")
 
-    def callback(self, rcv : Image, wp : WindowPack):
+    def callback(self, msg : WindowPack):
         if self.pending:
             return
         # rospy.logdebug("ReID received message")
         self.pending = True
-        self.rcv = rcv
-        self.wp = wp
+        self.wp = msg
         pass
 
     def detect(self):
 
-        img = bridge.imgmsg_to_cv2(self.rcv, "bgr8")
+        img = bridge.imgmsg_to_cv2(self.wp.img, "bgr8")
         height, width, channels = img.shape
         
         window_scores = []
@@ -152,7 +146,7 @@ class ReID:
                         
         except Exception as e:
             print(str(e))
-            rospy.logwarn(f'Frame #{self.rcv.header.seq} had out of bounds windows and was skipped!')
+            rospy.logwarn(f'Frame #{self.wp.img.header.seq} had out of bounds windows and was skipped!')
             
         self.wp.timestamp = rospy.Time.now()
         self.dataP.publish(self.wp)

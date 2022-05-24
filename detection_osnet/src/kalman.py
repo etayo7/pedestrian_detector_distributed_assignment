@@ -48,7 +48,7 @@ class Kalman:
             aux = numpy.array([self.next[i].x, self.next[i].y], numpy.float32)
             self.kf[window.assignment - 1].correct(aux)
 
-        msg = WindowPack()
+        msg = WindowPack(img = self.rcv.img)
 
         for i in range(len(self.kf)):
             if next[i].x == next[i].y == next[i].h == next[i].w == 0:
