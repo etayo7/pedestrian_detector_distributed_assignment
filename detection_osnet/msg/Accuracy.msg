@@ -1,4 +1,4 @@
-float64 true_positive
-float64 true_negative
-float64 false_positive
-float64 false_negative
+float64 correct
+float64 wrong
+float64 missing
+float64 extra
