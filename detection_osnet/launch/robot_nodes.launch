@@ -4,7 +4,7 @@
     <arg name="generate_configure"  default="false"/>
     <arg name="level"               default="yolo"/>
     
-    <param name="cfg/monitor/level" value="$(arg level)"/>
+    <param name="r_$(arg robot)/cfg/monitor/level" value="$(arg level)"/>
 
     <!-- If necesarry, first start the camera -->
     <group if="$(arg launch_cam_node)">
