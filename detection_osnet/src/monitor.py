@@ -9,15 +9,17 @@ import numpy
 import rospy
 from cv_bridge import CvBridge
 from detection_osnet.msg import (  # Custom message types between robot and monitor
-    Accuracy, MonitorUpdate, ProcessData, ProcessWindow)
+    Accuracy, MonitorUpdate, ProcessData, ProcessWindow, WindowPack)
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float64, Time, Duration
+import message_filters
 
 #   Defines
 
 DETECT_LVL_RAW = 0
 DETECT_LVL_YOLO = 1
 DETECT_LVL_OSNET = 2
+DETECT_LVL_KALMAN = 3
 
 #   Classes
 
@@ -29,149 +31,131 @@ class Monitor:
         avg_accuracy_percent : numpy.float64
         avg_frame_loss_percent : numpy.float64
 
-    class Reader:
-
-        class ReceivePack(NamedTuple):
-            img: Image
-            data: ProcessData
-
-
-        def __init__(self, ns: str = 'r_1', data_queue_len: int = 1, raw_img_queue_len: int = 1):
-            self._msg_data = Deque['ProcessData']()
-            self._pending = 0
-            self._msg_img = Deque['Image']()
-            self.dataS = rospy.Subscriber(
-                ns+'/data', ProcessData, self.callback_data, queue_size=data_queue_len)
-            self.imgS = rospy.Subscriber(
-                ns+'/camera/color/image_raw', Image, self.callback_img, queue_size=raw_img_queue_len)
-
-        def callback_data(self, msg : ProcessData):
-            self._msg_data.append(msg)
-            self._pending += 1
-        
-        def callback_img(self, msg : Image):
-            self._msg_img.append(msg)
-        
-        def hasPending(self):
-            return self._pending > 0
-    
-        def read(self):
-            if self._pending <= 0:
-                raise ValueError("No pending data to be read!")
-            self._pending -=1
-            data = self._msg_data.popleft()
-            img : Image = None
-            while self._msg_img:
-                img = self._msg_img.popleft()
-                if img.header.timestamp < data.frame_seq:
-                    break
-            return self.ReceivePack(img, data)
+    class ReceivePack(NamedTuple):
+        img: Image
+        wp: WindowPack
 
     class Writer:
 
-        def __init__(self, ns: str = 'r_1', post_queue_len: int = 1):
-            self.imgP = rospy.Publisher(
-                ns+'/results/image', Image, queue_size=post_queue_len)
-            self.ptimeP = rospy.Publisher(ns+'/results/processing_time', Duration, queue_size=post_queue_len)
-            self.dataP = rospy.Publisher(ns+'/metrics', MonitorUpdate, queue_size=1)
+        def __init__(self, ns: str = None, post_queue_len: int = 1):
+            self.imgP = rospy.Publisher(f'/r_{ns}/results/image', Image, queue_size=post_queue_len)
+            self.dataP = rospy.Publisher(f'r_{ns}/results', MonitorUpdate, queue_size=post_queue_len)
         
-        def write_frame(self, post_image : Image, process_time : Duration):
-            self.imgP.publish(post_image)
-            self.ptimeP.publish(process_time)
-            
-        def update(self, data : MonitorUpdate = None):
+        def write_frame(self, img : Image, data : MonitorUpdate):
+            self.imgP.publish(img)
             self.dataP.publish(data)
 
-    def __init__(self, bridge : CvBridge, ns : str = None, data_queue_len: int = 1, raw_img_queue_len: int = 1, post_queue_len: int = 1, target_no : int = 0):
-        self.ns = ns
-        self.reader = self.Reader(ns, data_queue_len, raw_img_queue_len)
+    def __init__(self, bridge : CvBridge, colors : numpy.array = None, ns : str = None, data_queue_len: int = 1, raw_img_queue_len: int = 1, post_queue_len: int = 1, target_no : int = 0, source : str = None):
+        
+
+        self.rcv : self.ReceivePack
+        imgS = message_filters.Subscriber(f'/r_{ns}/camera/color/image_raw', Image)
+        dataS = message_filters.Subscriber(f'/r_{ns}/processing/{source}', WindowPack)
+        self.reader = message_filters.ApproximateTimeSynchronizer([imgS, dataS], 10000, slop = 10000, reset=True)
+        self.reader.registerCallback(self.callback)
+
         self.writer = self.Writer(ns, post_queue_len)
 
         self.bridge = bridge
-        self.history_duration = rospy.Duration.from_sec(10) # TODO: Make this variable
         self.target_no = target_no
-        self.colors = numpy.random.uniform(0, 255, size=(target_no, 3))
-        self.analyze_lvl = DETECT_LVL_OSNET # TODO: Make this variable
+        self.colors = colors
 
-        self.process_time = Deque['rospy.Duration']()
+        if source == 'yolo':
+            self.level = DETECT_LVL_YOLO
+        elif source == 'osnet':
+            self.level = DETECT_LVL_OSNET
+        elif source == 'kalman':
+            self.level = DETECT_LVL_KALMAN
+
+        self.process_time = rospy.Duration()
         self.total_process_time = rospy.Duration()
 
-        self.accuracy = numpy.zeros(4, dtype=numpy.uint64)   # tp, tn, fp, fn
-        self.acc_hist = numpy.zeros((1,4), dtype=numpy.uint16)
+        self.accuracy = Accuracy()
 
         self.process_frame_count = numpy.uint64(0)
-        self.lost_frames_hist = numpy.zeros(1,numpy.uint16)
 
-        self.hist_timestamps = Deque["Time"]()
-        self.hist_timestamps.append(rospy.Time.now())
+        self.pending = False
 
         self.first_frame_id = 0
         self.last_frame_id = 0
 
+        
 
-    def update(self):
+    def callback(self, rcvImg, rcvData):
+        if self.pending:
+            return
+        rospy.loginfo("Monitor RX!")
+        self.rcv = self.ReceivePack(img = rcvImg, wp = rcvData)
+        self.pending = True
+
+    def service(self):
 
         now = rospy.Time.now()
 
-        # Read data
-        img, data = self.reader.read()
-        
-        # Start-time error mitigation
-        if img is None:
-            return
-
-        # Marking point in history
-        self.hist_timestamps.append(now)
-
         # Processing time
-        self.total_process_time += data.delta
-        self.process_time.append(data.delta)
+        self.process_time = self.rcv.wp.timestamp - self.rcv.img.header.stamp
+        self.total_process_time += self.process_time
 
-        # Accuracy & Frame Loss
+        # Frame Loss
         self.process_frame_count += 1
-
-        window_count = len(data.windows)
-        if window_count == self.target_no:
-            self.accuracy[0] += 1
-            self.acc_hist = numpy.append(self.acc_hist, [[1, 0, 0, 0]], axis=0)
-        elif window_count < self.target_no:
-            self.accuracy[3] += 1
-            self.acc_hist = numpy.append(self.acc_hist, [[0, 0, 0, 1]], axis=0)
-        else:
-            self.accuracy[2] += 1
-            self.acc_hist = numpy.append(self.acc_hist, [[0, 0, 1, 0]], axis=0)
-
+        
         if self.first_frame_id == 0:
-            self.first_frame_id = img.header.seq
+            self.first_frame_id = self.rcv.img.header.seq
+            lost_frames = 0
         else:
-            self.lost_frames_hist = numpy.append(self.lost_frames_hist, img.header.seq - self.last_frame_id)
-        self.last_frame_id = img.header.seq
+            lost_frames = self.rcv.img.header.seq - self.last_frame_id
+        self.last_frame_id = self.rcv.img.header.seq
+
+        accuracy = Accuracy(0, 0, 0, 0)
+        # Accuracy
+        if self.level == DETECT_LVL_YOLO:
+            accuracy.correct = min(len(self.rcv.wp.data), self.target_no)
+            if len(self.rcv.wp.data) > self.target_no:
+                accuracy.extra = len(self.rcv.wp.data) - self.target_no
+            else:
+                accuracy.missing = self.target_no - len(self.rcv.wp.data)
+        elif self.level > DETECT_LVL_YOLO: # For tests where each person keeps its lane
+            pw = sorted(self.rcv.wp.data, key = sortKeyProcessWindow) # Sort windows from leftmost to the right
+            accuracy.missing = self.target_no
+            for i in range(len(pw)):
+                accuracy.correct += (i - accuracy.extra == pw[i].assignment)
+                if (pw[i].assignment != i - accuracy.extra):
+                    if pw[i].assignment <= self.target_no:
+                        accuracy.missing -= 1
+                        accuracy.wrong += 1
+                    else:
+                        accuracy.extra += 1                
+
+        self.accuracy.correct   += accuracy.correct
+        self.accuracy.wrong     += accuracy.wrong
+        self.accuracy.missing   += accuracy.missing
+        self.accuracy.extra     += accuracy.extra
 
         # Process Image
-        img_cv2 = self.bridge.imgmsg_to_cv2(img,"bgr8")
+        img_cv2 = self.bridge.imgmsg_to_cv2(self.rcv.img,"bgr8")
 
-        if self.analyze_lvl > DETECT_LVL_RAW:
+        if self.level > DETECT_LVL_RAW:
             height, width, channels = img_cv2.shape
             color = [255, 255, 255] # White, default
             txtbox_h = int(height/30)
             txtbox_w = int(width/10)
 
             pw : ProcessWindow
-            for pw in data.windows:
-                xLeft = int(max(0, pw.yolo.x - pw.yolo.w/2))
-                yUp = int(max(0, pw.yolo.y - pw.yolo.h/2))
-                xRight = int(min(width, pw.yolo.x + pw.yolo.w/2 - 1))
-                yDown = int(min(height, pw.yolo.y + pw.yolo.h/2 - 1))
+            for pw in self.rcv.wp.data:
+                xLeft = int(max(0, pw.window.x - pw.window.w/2))
+                yUp = int(max(0, pw.window.y - pw.window.h/2))
+                xRight = int(min(width, pw.window.x + pw.window.w/2 - 1))
+                yDown = int(min(height, pw.window.y + pw.window.h/2 - 1))
 
-                txt = str(pw.yolo.w) + 'x' + str(pw.yolo.h)
+                txt = str(pw.window.w) + 'x' + str(pw.window.h)
 
-                if self.analyze_lvl > DETECT_LVL_YOLO:
+                if self.level > DETECT_LVL_YOLO:
                     if (pw.assignment <= self.target_no):
                         color = self.colors[pw.assignment - 1]
-                        txt = "Person " + str(pw.assignment)
+                        txt = f'Person {pw.assignment}'
                     else:
                         color = [255, 255, 255] # White, default
-                        txt = "!Person " + str(pw.assignment) + "!"
+                        txt = f'Person ?'
 
                 
                 # Main YOLO Window
@@ -185,56 +169,8 @@ class Monitor:
                 txtcolor = 0
                 cv2.putText(img_cv2, txt, (xLeft + 1, yUp + int(txtbox_h/2)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, txtcolor, 1)
 
-                if self.analyze_lvl > DETECT_LVL_YOLO:
-                    xLeft = int(max(0, pw.osnet.x - pw.osnet.w/2))
-                    yUp = int(max(0, pw.osnet.y - pw.osnet.h/2))
-                    xRight = int(min(width, pw.osnet.x + pw.osnet.w/2 - 1))
-                    yDown = int(min(height, pw.osnet.y + pw.osnet.h/2 - 1))
-                    cv2.rectangle(img_cv2, (xLeft, yUp), (xRight, yDown), color, 1)
-
-        self.writer.write_frame(self.bridge.cv2_to_imgmsg(img_cv2, "bgr8"), data.delta)
-
-
-
-    def getHistory(self):
-        # Eliminate old data
-        if self.hist_timestamps:
-            while self.hist_timestamps[0] - rospy.Time.now() > self.history_duration:
-                self.hist_timestamps.popleft()
-                self.process_time.popleft()
-                self.acc_hist = numpy.delete(self.acc_hist, 0, 0)
-                self.lost_frames_hist = numpy.delete(self.lost_frames_hist, 0, 0)
-        
-        process_score = 0
-        acc_percents = numpy.zeros(4)
-        frame_loss_percent = Float64(0)
-
-        # Process history window
-        if self.hist_timestamps:
-            count = len(self.hist_timestamps)
-            # Processing time - not used
-            process_score = numpy.true_divide(numpy.sum(self.process_time), count)
-
-            # Accuracy
-            acc_scores = self.acc_hist.sum(axis=0)
-            acc_percents = numpy.true_divide(acc_scores, count)
-
-            # Frame loss
-            frame_loss_score = numpy.sum(self.lost_frames_hist)
-            frame_loss_percent = numpy.true_divide(frame_loss_score, frame_loss_score + count)
-
-        # Result interpretation
-        acc_msg = Accuracy(true_positive = acc_percents[0], true_negative = acc_percents[1], false_positive = acc_percents[2], false_negative = acc_percents[3])
-        return acc_msg, frame_loss_percent
-            
-
-    def service(self):
-        acc, frame_loss = self.getHistory()
-        self.writer.update(MonitorUpdate(accuracy = acc, frame_loss = frame_loss))
-
-        if self.reader.hasPending() == False:
-            return
-        self.update()
+                self.writer.write_frame(img = self.bridge.cv2_to_imgmsg(img_cv2, "bgr8"), data = MonitorUpdate(accuracy = accuracy, frame_loss = lost_frames))
+                self.pending = False
 
     def summary(self):
         try:
@@ -253,3 +189,9 @@ class Monitor:
             frame_loss = 0
 
         return self.Results(processing_time, accuracy, frame_loss)
+
+
+#   Functions
+
+def sortKeyProcessWindow(pw : ProcessWindow):
+    return pw.window.x

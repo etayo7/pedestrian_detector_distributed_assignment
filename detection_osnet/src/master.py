@@ -9,9 +9,13 @@
 
 #   Imports
 
-from typing import List  # Typed datatypes
+from typing import List
+
+import numpy  # Typed datatypes
 
 import rospy  # ROS-Python Interface
+import message_filters
+from sensor_msgs.msg import Image
 from cv_bridge import CvBridge  # Interface between OpenCV and ROS imaging
 
 from monitor import Monitor  # Monitor class
@@ -27,9 +31,27 @@ class Master:
     def __init__(self):
         self.robot_no = rospy.get_param('/master/robot_no')
         self.monitors : List["Monitor"] = []
-        for i in range(self.robot_no):
-            self.monitors.append(Monitor(bridge, f'r_{i+1}', target_no=rospy.get_param('/master/target_no')))
+        colors = [  [249, 65, 68], 
+                    [243, 114, 44], 
+                    [248, 150, 30], 
+                    [249, 132, 74],
+                    [249, 199, 79],
+                    [144, 190, 109],
+                    [67, 170, 139],
+                    [77, 144, 142],
+                    [87, 117, 144],
+                    [39, 125, 161]
+                ]
+        colors = numpy.array(colors, ndmin=2)
 
+        try:
+            for i in range(self.robot_no):
+                self.monitors.append(Monitor(bridge = bridge, colors = colors, ns = i + 1, target_no=rospy.get_param('/master/target_no'), source = rospy.get_param(f'/r_{i+1}/cfg/monitor/level')))
+        except Exception:
+            rospy.logerr("Configuration info missing! Load configuration file / Run configuration script, then try again!")
+            rospy.signal_shutdown("Node cannot run without configuration info!")
+            return
+            
     def stats(self):
         id = 0
         for m in self.monitors:
@@ -40,7 +62,7 @@ class Master:
 
     def service(self):
         for m in self.monitors:
-            if m.reader.hasPending():
+            if m.pending:
                 # rospy.loginfo("Monitor processing data!")
                 m.service()
 
@@ -51,14 +73,17 @@ def master():
     # Initialization
     master = Master()
 
-    rospy.loginfo("Master node active. ")
+    rospy.on_shutdown(master.stats)
+
+    if (not rospy.is_shutdown()):
+        rospy.loginfo("Master node active. ")
 
     # Normal operation
     while not rospy.is_shutdown():
         master.service()
     
     # End messages
-    master.stats()
+    # master.stats()
 
 #   Guard
 if __name__ == '__main__':    
