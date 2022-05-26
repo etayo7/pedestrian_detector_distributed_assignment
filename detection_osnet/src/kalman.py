@@ -46,7 +46,7 @@ class Kalman:
         window : ProcessWindow
         for  window in self.rcv.data:
             while window.assignment > len(self.next):
-                self.next.append(kf = KalmanFilter(4,2), window = None, missing = inf)
+                self.next.append(self.KalmanWindow(kf = KalmanFilter(4,2), window = None, missing = inf))
                 self.next[len(self.next) - 1].kf.measurementMatrix = numpy.array([[1, 0, 0, 0], 
                                                                            [0, 1, 0, 0]], numpy.float32)
                 self.next[len(self.next) - 1].kf.transitionMatrix = numpy.array([[1, 0, 1, 0], 
