@@ -25,6 +25,7 @@ from sensor_msgs.msg import Image
 
 class Kalman:
 
+    @dataclass
     class KalmanWindow:
         kf : KalmanFilter
         window : Window
