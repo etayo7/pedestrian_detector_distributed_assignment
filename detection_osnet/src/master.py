@@ -11,11 +11,7 @@
 
 from typing import List
 
-import numpy  # Typed datatypes
-
 import rospy  # ROS-Python Interface
-import message_filters
-from sensor_msgs.msg import Image
 from cv_bridge import CvBridge  # Interface between OpenCV and ROS imaging
 
 from monitor import Monitor  # Monitor class
@@ -89,7 +85,7 @@ def master():
 if __name__ == '__main__':    
     
     # Initialize node
-    rospy.init_node("master", anonymous=False)
+    rospy.init_node("master", anonymous=False, log_level = rospy.DEBUG)
     rospy.loginfo("Master node initializing!")
 
     # Launch in execution
