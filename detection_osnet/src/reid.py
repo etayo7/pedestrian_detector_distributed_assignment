@@ -9,11 +9,9 @@ from dataclasses import dataclass
 import numpy
 
 import rospy
-import message_filters
 import imutils  # Image processing utility package
 from torchreid.utils import FeatureExtractor
-from sensor_msgs.msg import Image
-from detection_osnet.msg import Window, ProcessWindow, WindowPack
+from detection_osnet.msg import WindowPack
 from cv_bridge import CvBridge
 from scipy.spatial import distance
 from scipy.optimize import \
@@ -87,7 +85,7 @@ class ReID:
 
     def detect(self):
 
-        img = bridge.imgmsg_to_cv2(self.wp.img, "bgr8")
+        img = bridge.compressed_imgmsg_to_cv2(self.wp.img, "bgr8")
         height, width, channels = img.shape
         
         window_scores = []

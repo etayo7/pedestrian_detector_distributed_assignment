@@ -11,7 +11,7 @@ import rospy
 from cv2 import dnn_Net
 from cv_bridge import CvBridge
 from detection_osnet.msg import ProcessWindow, Window, WindowPack
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import CompressedImage
 
 
 #   Globals
@@ -52,11 +52,11 @@ class YOLO:
         max_count: int
 
     def __init__(self, params: YOLOParameters, files: YOLOFiles):
-        self.dataS = rospy.Subscriber('camera/color/image_raw', Image, self.callback, queue_size=1)
+        self.dataS = rospy.Subscriber('camera/color/image_raw/compressed', CompressedImage, self.callback, queue_size=1)
         self.dataP = rospy.Publisher('processing/yolo', WindowPack, queue_size=1)
         self.pending = False
 
-        self.rcv : Image = None
+        self.rcv : CompressedImage = None
 
         rospy.loginfo("YOLO network initializing...")
         self.params = params
@@ -73,7 +73,7 @@ class YOLO:
         rospy.loginfo("YOLO network initialized succesfully!")
 
     def detect(self):
-            img = bridge.imgmsg_to_cv2(self.rcv, "bgr8")
+            img = bridge.compressed_imgmsg_to_cv2(self.rcv, "bgr8")
             height, width, channels = img.shape
             # YOLO Detection
             blob = cv2.dnn.blobFromImage(img, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
@@ -167,7 +167,7 @@ class YOLO:
         return pick
 
 
-    def callback(self, msg : Image):
+    def callback(self, msg : CompressedImage):
         if self.pending == True:
             return
         self.rcv = msg

@@ -1,4 +1,4 @@
 Header header
 time timestamp
-sensor_msgs/Image img
+sensor_msgs/CompressedImage img
 detection_osnet/ProcessWindow[] data

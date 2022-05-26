@@ -2,17 +2,15 @@
 
 #   Imports
 
-from typing import Deque, NamedTuple
+from typing import NamedTuple
 
 import cv2
 import numpy
 import rospy
 from cv_bridge import CvBridge
 from detection_osnet.msg import (  # Custom message types between robot and monitor
-    Accuracy, MonitorUpdate, ProcessData, ProcessWindow, WindowPack)
-from sensor_msgs.msg import Image
-from std_msgs.msg import Float64, Time, Duration
-import message_filters
+    Accuracy, MonitorUpdate, ProcessWindow, WindowPack)
+from sensor_msgs.msg import CompressedImage
 
 #   Defines
 
@@ -34,12 +32,13 @@ class Monitor:
     class Writer:
 
         def __init__(self, ns: str = None, post_queue_len: int = 1):
-            self.imgP = rospy.Publisher(f'/r_{ns}/results/image', Image, queue_size=post_queue_len)
+            self.imgP = rospy.Publisher(f'/r_{ns}/results/CompressedImage', CompressedImage, queue_size=post_queue_len)
             self.dataP = rospy.Publisher(f'r_{ns}/results', MonitorUpdate, queue_size=post_queue_len)
         
-        def write_frame(self, img : Image, data : MonitorUpdate):
+        def write_frame(self, img : CompressedImage, data : MonitorUpdate):
             self.imgP.publish(img)
             self.dataP.publish(data)
+            rospy.loginfo("Monitor TX!")
 
     def __init__(self, bridge : CvBridge, colors : numpy.array = None, ns : str = None, data_queue_len: int = 1, raw_img_queue_len: int = 1, post_queue_len: int = 1, target_no : int = 0, source : str = None):
         
@@ -125,7 +124,7 @@ class Monitor:
         self.accuracy.extra     += accuracy.extra
 
         # Process Image
-        img_cv2 = self.bridge.imgmsg_to_cv2(self.rcv.img,"bgr8")
+        img_cv2 = self.bridge.compressed_imgmsg_to_cv2(self.rcv.img,"bgr8")
 
         if self.level > DETECT_LVL_RAW:
             height, width, channels = img_cv2.shape
