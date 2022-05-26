@@ -2,6 +2,7 @@
 
 #   Imports
 
+from cmath import inf
 import os
 from typing import List
 os.environ["ROS_NAMESPACE"] = "/r_1"
@@ -24,6 +25,11 @@ from sensor_msgs.msg import Image
 
 class Kalman:
 
+    class KalmanWindow:
+        kf : KalmanFilter
+        window : Window
+        missing : int
+
     def __init__(self, source : str):
         self.dataS = rospy.Subscriber(f'processing/{source.lower()}', WindowPack, self.callback, queue_size=1)
         self.dataP = rospy.Publisher('processing/kalman', WindowPack, queue_size=1)
@@ -31,40 +37,37 @@ class Kalman:
         self.pending = False
         self.rcv : WindowPack = None
 
-        self.kf : List['KalmanFilter'] = []
-
-        self.next : List['Window'] = []
+        self.next : List['self.KalmanWindow'] = []
 
     def process(self):
 
-        skip_kalman = []
+        for kw in self.next:
+            kw.missing += 1
         window : ProcessWindow
         for  window in self.rcv.data:
-            while window.assignment > len(self.kf):
-                self.kf.append(KalmanFilter(4,2))
-                self.kf[len(self.kf) - 1].measurementMatrix = numpy.array([[1, 0, 0, 0], 
+            while window.assignment > len(self.next):
+                self.next.append(kf = KalmanFilter(4,2), window = None, missing = inf)
+                self.next[len(self.next) - 1].kf.measurementMatrix = numpy.array([[1, 0, 0, 0], 
                                                                            [0, 1, 0, 0]], numpy.float32)
-                self.kf[len(self.kf) - 1].transitionMatrix = numpy.array([[1, 0, 1, 0], 
+                self.next[len(self.next) - 1].kf.transitionMatrix = numpy.array([[1, 0, 1, 0], 
                                                                           [0, 1, 0, 1], 
                                                                           [0, 0, 1, 0], 
                                                                           [0, 0, 0, 1]], numpy.float32)
-                self.kf[len(self.kf) - 1].processNoiseCov = numpy.eye(4, dtype = numpy.float32) * 0.03 
-            while window.assignment > len(self.next):
-                self.next.append(Window())
-            self.next[window.assignment - 1] = window.window
-            skip_kalman.append(window.assignment - 1)
+                self.next[len(self.next) - 1].kf.processNoiseCov = numpy.eye(4, dtype = numpy.float32) * 0.03
+            self.next[window.assignment - 1].window = window.window
+            self.next[window.assignment - 1].missing = 0
 
-            aux = numpy.array((self.next[window.assignment - 1].x, self.next[window.assignment - 1].y), numpy.float32)
-            self.kf[window.assignment - 1].correct(aux)
+            aux = numpy.array((self.next[window.assignment - 1].window.x, self.next[window.assignment - 1].window.y), numpy.float32)
+            self.next[window.assignment - 1].kf.correct(aux)
 
         msg = WindowPack(img = self.rcv.img)
 
-        for i in range(len(self.kf)):
-            if (i in skip_kalman) == False:
-                measurement = self.kf[i].predict()
-                self.next[i].x = measurement[0]
-                self.next[i].y = measurement[1]
-            msg.data.append(ProcessWindow(window = self.next[i], assignment = i + 1))
+        for kw in self.next:
+            if kw.missing < 20:
+                measurement = kw.kf.predict()
+                kw.window.x = measurement[0]
+                kw.window.y = measurement[1]
+                msg.data.append(ProcessWindow(window = kw.window, assignment = self.next.index(kw) + 1))
 
         msg.header.stamp = self.rcv.header.stamp
         msg.timestamp = rospy.Time.now()
