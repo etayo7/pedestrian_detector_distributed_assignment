@@ -11,8 +11,9 @@ def cfg_creator():
     rospy.set_param('cfg/yolo/cfg', 'yolov3-tiny.cfg')
     rospy.set_param('cfg/yolo/names', 'coco.names')
 
-    rospy.set_param('cfg/yolo/min_score', 0.3)
-    rospy.set_param('cfg/yolo/max_overlap', 0.5)
+    rospy.set_param('cfg/yolo/min_score', 0.4)
+    rospy.set_param('cfg/yolo/max_overlap', 0.4)
+    rospy.set_param('cfg/yolo/min_box_confidence', 0.7)
     rospy.set_param('cfg/yolo/max_count', 10)
 
     rospy.set_param('cfg/reid/path', os.path.join(os.path.dirname(__file__), '..', 'osnet_data'))
@@ -29,8 +30,6 @@ def cfg_creator():
 
     rospy.set_param('/master/robot_no', 1)
     rospy.set_param('/master/target_no', 3)
-
-    rospy.set_param('cfg/monitor/level', 'yolo')
 
 #   Guard
 if __name__ == '__main__':

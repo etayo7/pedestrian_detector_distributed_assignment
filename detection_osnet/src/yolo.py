@@ -49,6 +49,7 @@ class YOLO:
     class YOLOParameters:
         min_score: float
         max_overlap: float
+        min_box_confidence: float
         max_count: int
 
     def __init__(self, params: YOLOParameters, files: YOLOFiles):
@@ -83,7 +84,7 @@ class YOLO:
             boxes = []
             for out in outs:
                 for detection in out:
-                    if (detection[4] < 0.8): # TODO: Make variable confidence score
+                    if (detection[4] < self.params.min_box_confidence):
                         continue
                     scores = detection[5:]
                     class_id = numpy.argmax(scores)
@@ -179,7 +180,7 @@ class YOLO:
 def yolo():
 
     files = YOLO.YOLOFiles(rospy.get_param("cfg/yolo/path"), rospy.get_param("cfg/yolo/weight"), rospy.get_param("cfg/yolo/cfg"), rospy.get_param("cfg/yolo/names"))
-    params = YOLO.YOLOParameters(rospy.get_param("cfg/yolo/min_score"), rospy.get_param("cfg/yolo/max_overlap"), rospy.get_param("cfg/yolo/max_count"))
+    params = YOLO.YOLOParameters(rospy.get_param("cfg/yolo/min_score"), rospy.get_param("cfg/yolo/max_overlap"), rospy.get_param("cfg/yolo/min_box_confidence"), rospy.get_param("cfg/yolo/max_count"))
     
     obj = YOLO(params = params, files = files)
     rospy.on_shutdown(world_end)
