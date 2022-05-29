@@ -102,7 +102,7 @@ class YOLO:
             for i in self.filter_windows(boxes):
                 windows.append(ProcessWindow(window = boxes[i], assignment = None))
             msg = WindowPack(data = windows, img = self.rcv)
-            # msg.header.stamp = self.rcv.header.stamp
+            msg.header.stamp = self.rcv.header.stamp
             msg.timestamp = rospy.Time.now()
             self.dataP.publish(msg)
             self.pending = False
