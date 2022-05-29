@@ -17,7 +17,7 @@ bridge = CvBridge()
 
 def img_extractor(src : str):
     inBag = rosbag.Bag(src, 'r')
-    outPath = os.path('exported/')
+    outPath = 'exported'
 
     rospy.loginfo("Image extractor initialized!")
     
@@ -26,10 +26,10 @@ def img_extractor(src : str):
     t : genpy.Time
     for topic, msg, t in inBag.read_messages():
         if 'compressed' in topic:
-            img = bridge.compressed_imgmsg_to_cv2(msg, 'brg8')
+            img = bridge.compressed_imgmsg_to_cv2(msg, 'bgr8')
         else:
             img = bridge.imgmsg_to_cv2(msg, 'bgr8')
-        cv2.imwrite(f'{outPath}img_{t.to_sec}.jpg', img, )
+        cv2.imwrite(f'{outPath}img_{i}.jpg', img)
         i += 1
         
 
