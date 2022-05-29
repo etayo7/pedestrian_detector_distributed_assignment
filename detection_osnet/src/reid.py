@@ -5,8 +5,11 @@
 from collections import deque
 import os
 from dataclasses import dataclass
+from tkinter import filedialog
+from typing import List
 
 import numpy
+import torch
 
 import rospy
 import imutils  # Image processing utility package
@@ -44,6 +47,7 @@ class ReID:
         dynamic_gallery_content : bool
         targets : int
         redo_windows : bool
+        load_galeries : bool
 
     @dataclass
     class ReIDGallery:
@@ -65,6 +69,23 @@ class ReID:
         self.dynamic_gallery = (galleries is None)
         self.params = params
         self.files = files
+
+        if (self.params.load_galeries == True):
+            self.feature_galleries : List['self.ReIDGallery'] = []
+            for i in range(self.params.targets):
+                filetypes = (('PyTorch Tensor files', '*.pt'), ('All files', '*.*'))
+                filenames = filedialog.askopenfilenames(
+                    title=f'Select gallery {i}',
+                    initialdir='.',
+                    filetypes=filetypes)
+                gal = list()
+                for fn in filenames:
+                    t = torch.load(fn)
+                    gal.append(t)
+                self.feature_galleries.append(self.ReIDGallery(gal))
+            self.dynamic_gallery = False
+            self.params.dynamic_gallery_content = False
+
 
         if (self.dynamic_gallery == True):
             self.feature_galleries = deque()
@@ -107,7 +128,7 @@ class ReID:
                 xRight = int(min(width, pw.window.x + pw.window.w/2 - 1))
                 yDown = int(min(height, pw.window.y + pw.window.h/2 - 1))
 
-                cropped = img[xLeft:xRight, yUp:yDown]
+                cropped = img[yUp:yDown, xLeft:xRight]
                 cropped = imutils.resize(cropped, width = self.params.window_w, height = int(self.params.window_w*self.params.window_ratio))
                 descriptor.append(self.extractor(cropped))
                 gallery_score = []
@@ -123,7 +144,7 @@ class ReID:
             row_index, col_index = linear_sum_assignment(window_scores)
 
             for i in range(len(row_index)):
-                if window_scores[row_index[i], col_index[i]] > self.params.max_distance:
+                if window_scores[row_index[i], col_index[i]] > self.params.max_distance and self.dynamic_gallery:
                     continue
                 self.wp.data[row_index[i]].assignment = col_index[i] + 1
 
@@ -133,14 +154,14 @@ class ReID:
                 if len(self.feature_galleries[col_index[i]]) < self.params.descriptor_size:
                     self.feature_galleries[col_index[i]].append(descriptor[row_index[i]])
             
-            
-            for index in range(len(self.wp.data)):
-                if len(self.feature_galleries) < self.params.targets:
-                    if (self.wp.data[index].assignment == 0):
-                        gal = deque()
-                        gal.append(descriptor[index])
-                        self.feature_galleries.append(gal)
-                        self.wp.data[index].assignment = len(self.feature_galleries)
+            if (self.dynamic_gallery):
+                for index in range(len(self.wp.data)):
+                    if len(self.feature_galleries) < self.params.targets:
+                        if (self.wp.data[index].assignment == 0):
+                            gal = deque()
+                            gal.append(descriptor[index])
+                            self.feature_galleries.append(gal)
+                            self.wp.data[index].assignment = len(self.feature_galleries)
                         
         except Exception as e:
             print(str(e))
@@ -165,7 +186,8 @@ def reid():
             rospy.get_param("cfg/reid/max_distance"), 
             rospy.get_param("cfg/reid/dynamic_gallery"), 
             rospy.get_param("/master/target_no"), 
-            rospy.get_param("cfg/reid/redo_yolo_windows")
+            rospy.get_param("cfg/reid/redo_yolo_windows"),
+            rospy.get_param('cfg/reid/load_galleries')
             )
     except Exception:
         rospy.logerr("Configuration info missing! Load configuration file / Run configuration script, then try again!")

@@ -25,11 +25,12 @@ def cfg_creator():
     rospy.set_param('cfg/reid/max_distance', 0.6)
     rospy.set_param('cfg/reid/redo_yolo_windows', 0)
     rospy.set_param('cfg/reid/dynamic_gallery', 1)
+    rospy.set_param('cfg/reid/load_galleries', 1)
 
     rospy.set_param('cfg/kalman/source', 'osnet')
 
     rospy.set_param('/master/robot_no', 1)
-    rospy.set_param('/master/target_no', 3)
+    rospy.set_param('/master/target_no', 2)
 
 #   Guard
 if __name__ == '__main__':
