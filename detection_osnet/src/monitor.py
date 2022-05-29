@@ -26,7 +26,10 @@ class Monitor:
 
     class Results(NamedTuple):
         avg_process_time : rospy.Duration
-        avg_accuracy_percent : numpy.float64
+        avg_correct_percent : numpy.float64
+        avg_wrong_percent : numpy.float64
+        avg_missing_percent : numpy.float64
+        avg_extra_percent : numpy.float64
         avg_frame_loss_percent : numpy.float64
 
     class Writer:
@@ -38,7 +41,7 @@ class Monitor:
         def write_frame(self, img : CompressedImage, data : MonitorUpdate):
             self.imgP.publish(img)
             self.dataP.publish(data)
-            rospy.loginfo("Monitor TX!")
+            # rospy.loginfo("Monitor TX!")
 
     def __init__(self, bridge : CvBridge, colors : numpy.array = None, ns : str = None, data_queue_len: int = 1, raw_img_queue_len: int = 1, post_queue_len: int = 1, target_no : int = 0, source : str = None):
         
@@ -173,16 +176,29 @@ class Monitor:
             processing_time = rospy.Time.from_sec(0)
         
         try:
-            accuracy = numpy.true_divide(self.accuracy[0] + self.accuracy[1], numpy.sum(self.accuracy))*100
+            total = self.accuracy.correct + self.accuracy.missing + self.accuracy.extra + self.accuracy.wrong
+            avg_correct = numpy.true_divide(self.accuracy.correct, total)*100
+            avg_wrong = numpy.true_divide(self.accuracy.wrong, total)*100
+            avg_missing = numpy.true_divide(self.accuracy.missing, total)*100
+            avg_extra = numpy.true_divide(self.accuracy.extra, total)*100
         except Exception:
-            accuracy = 0
+            avg_correct = 0
+            avg_wrong = 0
+            avg_missing = 0
+            avg_extra = 0
 
         try:
             frame_loss = numpy.true_divide(self.process_frame_count , self.last_frame_id - self.first_frame_id + 1)
         except ValueError:
             frame_loss = 0
 
-        return self.Results(processing_time, accuracy, frame_loss)
+        return self.Results(avg_process_time = processing_time, 
+                            avg_frame_loss_percent = frame_loss,
+                            avg_correct_percent = avg_correct, 
+                            avg_wrong_percent = avg_wrong,
+                            avg_extra_percent = avg_extra,
+                            avg_missing_percent = avg_missing
+                            )
 
 
 #   Functions

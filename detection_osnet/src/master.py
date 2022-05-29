@@ -52,8 +52,8 @@ class Master:
         id = 0
         for m in self.monitors:
             id += 1
-            pt, acc, lf = m.summary()
-            txt = f'Robot {id} summary: \n\tAverage processing time: {pt.to_sec()}s\n\tAverage accuracy: {acc}%\n\tAverage frame loss: {lf}%'
+            pt, correct, wrong, missing, extra, lf = m.summary()
+            txt = f'Robot {id} summary: \n\tAverage processing time: {pt.to_sec()}s\n\tAverage accuracy: {correct}%\n\tAverage frame loss: {lf}%'
             rospy.loginfo(txt)
 
     def service(self):
