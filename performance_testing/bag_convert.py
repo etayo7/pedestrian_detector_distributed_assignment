@@ -21,7 +21,7 @@ def bag_convert(src : str, dest : str):
     for topic, msg, t in inBag.read_messages():
         if 'image_raw' in topic:
             imgmsg = bridge.cv2_to_compressed_imgmsg(bridge.imgmsg_to_cv2(msg, 'bgr8'), dst_format='jpg')
-            outBag.write(topic, imgmsg, t)
+            outBag.write(f'{topic}/compressed', imgmsg, t)
     
     rospy.loginfo("Conversion done! Closing.")
     pass
