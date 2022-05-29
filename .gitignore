@@ -55,3 +55,4 @@ qtcreator-*
 CATKIN_IGNORE
 *.bag
 *.jpg
+*.pt
