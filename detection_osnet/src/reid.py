@@ -11,6 +11,7 @@ from typing import List
 import numpy
 import torch
 
+# os.environ['ROS_NAMESPACE'] = 'r_1'
 import rospy
 import imutils  # Image processing utility package
 from torchreid.utils import FeatureExtractor
@@ -19,7 +20,6 @@ from cv_bridge import CvBridge
 from scipy.spatial import distance
 from scipy.optimize import \
     linear_sum_assignment  # Hungarian algorithm (bipartite assignment)
-
 
 #   Globals
 
@@ -82,7 +82,7 @@ class ReID:
                 for fn in filenames:
                     t = torch.load(fn)
                     gal.append(t)
-                self.feature_galleries.append(self.ReIDGallery(gal))
+                self.feature_galleries.append(gal)
             self.dynamic_gallery = False
             self.params.dynamic_gallery_content = False
 
@@ -164,8 +164,7 @@ class ReID:
                             self.wp.data[index].assignment = len(self.feature_galleries)
                         
         except Exception as e:
-            print(str(e))
-            rospy.logwarn(f'Frame #{self.wp.img.header.seq} had out of bounds windows and was skipped!')
+            rospy.logwarn(f'{e}')
             
         self.wp.timestamp = rospy.Time.now()
         self.dataP.publish(self.wp)
