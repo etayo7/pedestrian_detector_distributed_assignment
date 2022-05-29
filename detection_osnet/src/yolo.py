@@ -171,6 +171,8 @@ class YOLO:
     def callback(self, msg : CompressedImage):
         if self.pending == True:
             return
+        if msg.header.stamp.is_zero():
+            msg.header.stamp = rospy.Time.now()
         self.rcv = msg
         self.pending = True
         
