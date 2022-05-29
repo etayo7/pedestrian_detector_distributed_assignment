@@ -38,5 +38,5 @@ if __name__ == '__main__':
     try:
         bag_convert(src, dest)
     except rospy.ROSInterruptException:
-        rospy.logerr("Robot YOLO Node initialization error!")
+        rospy.logerr("Bag Converter Node initialization error!")
         pass
