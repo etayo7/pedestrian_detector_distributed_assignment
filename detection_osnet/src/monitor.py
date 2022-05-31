@@ -45,7 +45,7 @@ class Monitor:
     def __init__(self, bridge : CvBridge, colors : numpy.array = None, ns : str = None, data_queue_len: int = 1, raw_img_queue_len: int = 1, post_queue_len: int = 1, target_no : int = 0, source : str = None):
         
 
-        self.rcv : Deque['WindowPack'] = []
+        self.rcv : Deque['WindowPack'] = Deque()
         self.reader = rospy.Subscriber(f'/r_{ns}/processing/{source}', WindowPack, self.callback, queue_size = 1)
 
         self.writer = self.Writer(ns, post_queue_len)
@@ -65,7 +65,7 @@ class Monitor:
 
         self.accuracy = Accuracy()
 
-        self.process_frame_count = numpy.uint64(0)
+        self.process_frame_count = 0
 
         self.first_frame_id = 0
         self.last_frame_id = 0
@@ -164,7 +164,7 @@ class Monitor:
             
             mean_tosec = mean_processing_time.to_sec()
             for t in self.process_time:
-                aux_std += (t.to_sec() - mean_tosec)^2
+                aux_std += (t.to_sec() - mean_tosec)**2
             aux_std /= self.process_frame_count - 1
             aux_std = sqrt(aux_std)
             std_processing_time = rospy.Duration.from_sec(aux_std)

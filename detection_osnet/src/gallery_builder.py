@@ -76,7 +76,8 @@ def gallery_builder():
         initialdir='~',
         filetypes=filetypes)
     
-    exportPath = f'~/PDDA_Galleries/Run_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}'
+    home = os.path.expanduser('~')
+    exportPath = f'{home}/PDDA_Galleries/Run_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}'
     
     try:
         os.makedirs(exportPath)
