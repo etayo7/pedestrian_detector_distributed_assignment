@@ -3,6 +3,8 @@
     <arg name="robot"		        default="1"/>
     <arg name="generate_configure"  default="false"/>
     <arg name="level"               default="yolo"/>
+    <arg name="color_width"         default="1920"/>
+    <arg name="color_height"        default="1080"/>
     
     <param name="r_$(arg robot)/cfg/monitor/level" value="$(arg level)"/>
 
@@ -10,6 +12,8 @@
     <group if="$(arg launch_cam_node)">
         <include file="$(find camera_node)/launch/camera_node.launch">
             <arg name="robot" value="$(arg robot)"/>
+            <arg name="color_width"              value="$(arg color_width)"/>
+            <arg name="color_height"             value="$(arg color_height)"/>
         </include>
     </group>
 
