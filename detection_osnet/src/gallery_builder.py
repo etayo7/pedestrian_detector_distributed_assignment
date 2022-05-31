@@ -2,25 +2,22 @@
 
 #   Imports
 
+import datetime
 import os
-from typing import List
-import cv2
-import torch
-from cv_bridge import CvBridge
-import rospy
-import rosbag
-from  yolo import YOLO
-from reid import ReID
-import scipy
-import numpy
 from tkinter import filedialog
-from detection_osnet.msg import Window
-import imutils
 
+import cv2
+import numpy
+# os.environ['ROS_NAMESPACE'] = 'r_1'   # Uncomment to force node namespace
+import rospy
+import torch
+from detection_osnet.msg import Window
+
+from reid import ReID
+from yolo import YOLO
 
 #   Defines
 
-# os.environ['ROS_NAMESPACE'] = 'r_1'
 
 #   Globals
 
@@ -68,8 +65,8 @@ def gallery_builder():
         return
     
     names = []
-    for i in range(target_no):
-        name = input(f'Please enter nickname for gallery {i}: ')
+    for id in range(target_no):
+        name = input(f'Please enter nickname for gallery {id + 1}: ')
         names.append(name)
     filetypes = (('JPEG Image', '*.jpg'), ('PNG Image', '*.png'))
     rospy.loginfo("Load images to create gallery...")
@@ -78,19 +75,30 @@ def gallery_builder():
         title='Select images...',
         initialdir='~',
         filetypes=filetypes)
-
-    galleries : List['ReID.ReIDGallery'] = []
-    for i in range(target_no):
-        galleries.append(ReID.ReIDGallery(list()))
+    
+    exportPath = f'~/PDDA_Galleries/Run_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}'
     
     try:
-        os.mkdir('results')
-        os.mkdir('results/thumbs')
-        os.mkdir('results/galleries')
-    except Exception:
-        pass
+        os.makedirs(exportPath)
+    except Exception as e:
+        rospy.logwarn(e)
     
+    try:
+        os.chdir(exportPath)
+    except Exception as e:
+        rospy.logerr(e)
+        return
+    
+    for name in names:
+        try:
+            os.makedirs(f'{name}/desc')
+            os.makedirs(f'{name}/thumbs')
+        except Exception as e:
+            rospy.logwarn(e)
+    
+    counter = 0
     for fn in filenames:
+        counter += 1
         img = cv2.imread(fn)
         height, width, channels = img.shape
 
@@ -130,19 +138,12 @@ def gallery_builder():
             yUp = int(max(0, windows[i].y - windows[i].h/2))
             xRight = int(min(width, windows[i].x + windows[i].w/2 - 1))
             yDown = int(min(height, windows[i].y + windows[i].h/2 - 1))
+
             cropped = img[yUp:yDown, xLeft:xRight]
-            # cropped = imutils.resize(cropped, width = reid_obj.params.window_w, height = int(reid_obj.params.window_w*reid_obj.params.window_ratio))
-            galleries[i].descriptors.append(reid_obj.extractor(cropped))
-            cv2.imwrite(f'results/thumbs/{names[i]}_{len(galleries[i].descriptors)}.jpg',cropped)
-    
-    for i in range(len(galleries)):
-        for j in range(len(galleries[i].descriptors)):
-            torch.save(galleries[i].descriptors[j], f'results/galleries/{names[i]}_d{j}.pt')
-
-        
-
-
-
+            cv2.imwrite(f'{names[i]}/thumbs/{counter}.jpg',cropped)
+            
+            desc = reid_obj.extractor(cropped)
+            torch.save(desc, f'{names[i]}/desc/{counter}.pt')
     pass
 
 def sort_key(w : Window):

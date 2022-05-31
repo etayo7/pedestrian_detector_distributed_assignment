@@ -2,24 +2,23 @@
 
 #   Imports
 
-from collections import deque
-import os
-from dataclasses import dataclass
-from tkinter import filedialog
-from typing import List
+import os                                       # OS Tools
+from collections import deque                   # Double-ended queue data structure
+from dataclasses import dataclass               # C-type structs
+from tkinter import filedialog                  # 'Open file(s)' dialog UI
+from typing import List                         # Typed lists
 
-import numpy
-import torch
-
-# os.environ['ROS_NAMESPACE'] = 'r_1'
-import rospy
-import imutils  # Image processing utility package
-from torchreid.utils import FeatureExtractor
-from detection_osnet.msg import WindowPack
-from cv_bridge import CvBridge
-from scipy.spatial import distance
+import imutils                                  # Image processing utility package
+import numpy                                    # Math library
+# os.environ['ROS_NAMESPACE'] = 'r_1'           # Uncomment to force node namespace
+import rospy                                    # ROS-Python Interface
+import torch                                    # PyTorch for working with neural networks & tensors
+from cv_bridge import CvBridge                  # Interface between OpenCV and ROS imaging
+from detection_osnet.msg import WindowPack      # Output message data type
 from scipy.optimize import \
-    linear_sum_assignment  # Hungarian algorithm (bipartite assignment)
+    linear_sum_assignment                       # Hungarian algorithm (bipartite assignment)
+from scipy.spatial import distance              # Cosine distance
+from torchreid.utils import FeatureExtractor    # OSnet feature extractor for re-identification
 
 #   Globals
 
@@ -76,7 +75,7 @@ class ReID:
                 filetypes = (('PyTorch Tensor files', '*.pt'), ('All files', '*.*'))
                 filenames = filedialog.askopenfilenames(
                     title=f'Select gallery {i}',
-                    initialdir='.',
+                    initialdir='~/PDDA_Galleries',
                     filetypes=filetypes)
                 gal = list()
                 for fn in filenames:
