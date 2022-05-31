@@ -2,15 +2,16 @@
 
 #   Imports
 
-from typing import NamedTuple
+from math import sqrt                                           # Square root function
+from typing import Deque, List, NamedTuple                      # Typed data structures
 
-import cv2
-import numpy
-import rospy
-from cv_bridge import CvBridge
-from detection_osnet.msg import (  # Custom message types between robot and monitor
-    Accuracy, MonitorUpdate, ProcessWindow, WindowPack)
-from sensor_msgs.msg import CompressedImage
+import cv2                                                      # OpenCV
+import numpy                                                    # Numpy for math functions
+import rospy                                                    # ROS - Python interface
+from cv_bridge import CvBridge                                  # Interface between OpenCV and ROS imaging
+from detection_osnet.msg import (Accuracy, MonitorUpdate, 
+                                 ProcessWindow, WindowPack)     # Custom message types used by node I/O
+from sensor_msgs.msg import CompressedImage                     # ROS compressed image message type
 
 #   Defines
 
@@ -26,11 +27,9 @@ class Monitor:
 
     class Results(NamedTuple):
         avg_process_time : rospy.Duration
+        std_process_time : rospy.Duration
         avg_correct_percent : numpy.float64
         avg_wrong_percent : numpy.float64
-        avg_missing_percent : numpy.float64
-        avg_extra_percent : numpy.float64
-        avg_frame_loss_percent : numpy.float64
 
     class Writer:
 
@@ -46,7 +45,7 @@ class Monitor:
     def __init__(self, bridge : CvBridge, colors : numpy.array = None, ns : str = None, data_queue_len: int = 1, raw_img_queue_len: int = 1, post_queue_len: int = 1, target_no : int = 0, source : str = None):
         
 
-        self.rcv : WindowPack
+        self.rcv : Deque['WindowPack'] = []
         self.reader = rospy.Subscriber(f'/r_{ns}/processing/{source}', WindowPack, self.callback, queue_size = 1)
 
         self.writer = self.Writer(ns, post_queue_len)
@@ -62,14 +61,11 @@ class Monitor:
         elif source == 'kalman':
             self.level = DETECT_LVL_KALMAN
 
-        self.process_time = rospy.Duration()
-        self.total_process_time = rospy.Duration()
+        self.process_time : List['rospy.Duration'] = []
 
         self.accuracy = Accuracy()
 
         self.process_frame_count = numpy.uint64(0)
-
-        self.pending = False
 
         self.first_frame_id = 0
         self.last_frame_id = 0
@@ -77,72 +73,57 @@ class Monitor:
         
 
     def callback(self, msg : WindowPack):
-        if self.pending:
-            return
-        # rospy.loginfo("Monitor RX!")
-        self.rcv = msg
-        self.pending = True
+        self.rcv.append(msg)
 
     def service(self):
 
         now = rospy.Time.now()
+        msg = self.rcv.popleft()
 
         # Processing time
-        self.process_time = self.rcv.timestamp - self.rcv.header.stamp
-        self.total_process_time += self.process_time
+        self.process_time.append(msg.timestamp - msg.header.stamp)
 
         # Frame Loss
         self.process_frame_count += 1
         
         if self.first_frame_id == 0:
-            self.first_frame_id = self.rcv.img.header.seq
+            self.first_frame_id = msg.img.header.seq
             lost_frames = 0
         else:
-            lost_frames = self.rcv.img.header.seq - self.last_frame_id
-        self.last_frame_id = self.rcv.img.header.seq
+            lost_frames = msg.img.header.seq - self.last_frame_id
+        self.last_frame_id = msg.img.header.seq
 
-        accuracy = Accuracy(0, 0, 0, 0)
+        accuracy = Accuracy(0, 0)
         # Accuracy
-        if self.level == DETECT_LVL_YOLO:
-            accuracy.correct = min(len(self.rcv.data), self.target_no)
-            if len(self.rcv.data) > self.target_no:
-                accuracy.extra = len(self.rcv.data) - self.target_no
-            else:
-                accuracy.missing = self.target_no - len(self.rcv.data)
-        elif self.level > DETECT_LVL_YOLO: # For tests where each person keeps its lane
-            pw = sorted(self.rcv.data, key = sortKeyProcessWindow) # Sort windows from leftmost to the right
-            accuracy.missing = self.target_no
-            for i in range(len(pw)):
-                if ((i - accuracy.extra + 1) == pw[i].assignment):
-                    accuracy.correct += 1
-                    accuracy.missing -= 1
-                else:
-                    if pw[i].assignment <= self.target_no:
-                        accuracy.missing -= 1
-                        accuracy.wrong += 1
-                    else:
-                        accuracy.extra += 1
+        if (len(msg.data) != self.target_no):
+            self.accuracy.wrong += 1
+        else:
+            self.accuracy.correct += 1
+            if self.level > DETECT_LVL_YOLO: # For tests where each person keeps its lane
+                pw = sorted(msg.data, key = sortKeyProcessWindow) # Sort windows from leftmost to the right
+                for i in range(len(pw)):
+                    if (pw[i].assignment != i+1):
+                        self.accuracy.wrong += 1
+                        self.accuracy.correct -= 1
+                        break
 
-        self.accuracy.correct   += accuracy.correct
-        self.accuracy.wrong     += accuracy.wrong
-        self.accuracy.missing   += accuracy.missing
-        self.accuracy.extra     += accuracy.extra
 
         # Process Image
-        img_cv2 = self.bridge.compressed_imgmsg_to_cv2(self.rcv.img,"bgr8")
+        img_cv2 = self.bridge.compressed_imgmsg_to_cv2(msg.img,"bgr8")
 
         if self.level > DETECT_LVL_RAW:
             height, width, channels = img_cv2.shape
             color = [255, 255, 255] # White, default
             txtbox_h = int(height/30)
-            txtbox_w = int(width/10)
 
             pw : ProcessWindow
-            for pw in self.rcv.data:
+            for pw in msg.data:
                 xLeft = int(max(0, pw.window.x - pw.window.w/2))
                 yUp = int(max(0, pw.window.y - pw.window.h/2))
                 xRight = int(min(width, pw.window.x + pw.window.w/2 - 1))
                 yDown = int(min(height, pw.window.y + pw.window.h/2 - 1))
+                
+                txtbox_w = pw.window.w
 
                 txt = str(pw.window.w) + 'x' + str(pw.window.h)
 
@@ -159,45 +140,48 @@ class Monitor:
                 cv2.rectangle(img_cv2, (xLeft, yUp), (xRight, yDown), color, 2)
 
                 # YOLO Textbox
-                cv2.rectangle(img_cv2, (xLeft, yUp), (xLeft + txtbox_w, yUp + txtbox_h), color, -1)
+                cv2.rectangle(img_cv2, (xLeft, yDown - txtbox_h + 1), (xRight, yDown), color, -1)
 
                 # YOLO Text
-                # txtcolor = numpy.subtract([255, 255, 255], color).tolist()
                 txtcolor = 0
-                cv2.putText(img_cv2, txt, (xLeft + 1, yUp + int(txtbox_h/2)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, txtcolor, 1)
+                cv2.putText(img_cv2, txt, (xLeft + 1, yDown - int(txtbox_h/2)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, txtcolor, 1)
 
-                self.writer.write_frame(img = self.bridge.cv2_to_compressed_imgmsg(img_cv2, "jpg"), data = MonitorUpdate(accuracy = accuracy, frame_loss = lost_frames, processing_time = self.process_time))
-        self.pending = False
+                img = self.bridge.cv2_to_compressed_imgmsg(img_cv2, "jpg")
+
+                self.writer.write_frame(img = img, data = MonitorUpdate(accuracy = accuracy, frame_loss = lost_frames, processing_time = self.process_time))
+
+        return img_cv2
 
     def summary(self):
         try:
-            processing_time : rospy.Duration = self.total_process_time.__div__(self.process_frame_count)
+            mean_processing_time : rospy.Duration = rospy.Duration.from_sec(0)
+            std_processing_time : rospy.Duration = rospy.Duration.from_sec(0)
+            aux_std : numpy.float = 0
+            
+            for t in self.process_time:
+                mean_processing_time += t
+            mean_processing_time /= self.process_frame_count
+            
+            mean_tosec = mean_processing_time.to_sec()
+            for t in self.process_time:
+                aux_std += (t.to_sec() - mean_tosec)^2
+            aux_std /= self.process_frame_count - 1
+            aux_std = sqrt(aux_std)
+            std_processing_time = rospy.Duration.from_sec(aux_std)
         except ValueError:
-            processing_time = rospy.Time.from_sec(0)
+            pass
         
         try:
-            total = self.accuracy.correct + self.accuracy.missing + self.accuracy.extra + self.accuracy.wrong
-            avg_correct = numpy.true_divide(self.accuracy.correct, total)*100
-            avg_wrong = numpy.true_divide(self.accuracy.wrong, total)*100
-            avg_missing = numpy.true_divide(self.accuracy.missing, total)*100
-            avg_extra = numpy.true_divide(self.accuracy.extra, total)*100
+            avg_correct = numpy.true_divide(self.accuracy.correct, self.process_frame_count)*100
+            avg_wrong = numpy.true_divide(self.accuracy.wrong, self.process_frame_count)*100
         except Exception:
             avg_correct = 0
             avg_wrong = 0
-            avg_missing = 0
-            avg_extra = 0
 
-        try:
-            frame_loss = numpy.true_divide(self.process_frame_count , self.last_frame_id - self.first_frame_id + 1)
-        except ValueError:
-            frame_loss = 0
-
-        return self.Results(avg_process_time = processing_time, 
-                            avg_frame_loss_percent = frame_loss,
+        return self.Results(avg_process_time = mean_processing_time, 
+                            std_process_time = std_processing_time,
                             avg_correct_percent = avg_correct, 
-                            avg_wrong_percent = avg_wrong,
-                            avg_extra_percent = avg_extra,
-                            avg_missing_percent = avg_missing
+                            avg_wrong_percent = avg_wrong
                             )
 
 

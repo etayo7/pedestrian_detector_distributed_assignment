@@ -1,4 +1,2 @@
-float64 correct
-float64 wrong
-float64 missing
-float64 extra
+uint32 correct
+uint32 wrong
