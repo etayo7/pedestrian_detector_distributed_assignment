@@ -31,6 +31,7 @@ def cfg_creator():
 
     rospy.set_param('/master/robot_no', 1)
     rospy.set_param('/master/target_no', 2)
+    rospy.set_param('/master/export', 1)
 
 #   Guard
 if __name__ == '__main__':
