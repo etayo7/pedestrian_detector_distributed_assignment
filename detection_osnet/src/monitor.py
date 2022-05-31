@@ -148,7 +148,7 @@ class Monitor:
 
                 img = self.bridge.cv2_to_compressed_imgmsg(img_cv2, "jpg")
 
-                self.writer.write_frame(img = img, data = MonitorUpdate(accuracy = accuracy, frame_loss = lost_frames, processing_time = self.process_time))
+                self.writer.write_frame(img = img, data = MonitorUpdate(accuracy = accuracy, frame_loss = lost_frames, processing_time = self.process_time[self.process_frame_count - 1]))
 
         return img_cv2
 
