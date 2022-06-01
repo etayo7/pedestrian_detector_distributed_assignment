@@ -103,7 +103,7 @@ class Master:
             if len(m.rcv) > 0:
                 img = m.service()
                 if (self.does_export):
-                    cv2.imwrite(f'r_{id + 1}/img/frame_{m.process_frame_count}.jpg', img)
+                    cv2.imwrite(f'r_{id + 1}/img/frame_{m.process_frame_count:06}.jpg', img)
                     
 
 #   Functions

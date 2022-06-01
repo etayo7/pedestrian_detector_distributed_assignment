@@ -2,3 +2,4 @@ Header header
 detection_osnet/Accuracy accuracy
 float64 frame_loss
 duration processing_time
+duration avg_processing_time

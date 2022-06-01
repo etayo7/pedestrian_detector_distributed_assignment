@@ -62,7 +62,7 @@ class Monitor:
             self.level = DETECT_LVL_KALMAN
 
         self.process_time : List['rospy.Duration'] = []
-
+        self.total_process_time = rospy.Duration()
         self.accuracy = Accuracy()
 
         self.process_frame_count = 0
@@ -81,7 +81,9 @@ class Monitor:
         msg = self.rcv.popleft()
 
         # Processing time
-        self.process_time.append(msg.timestamp - msg.header.stamp)
+        aux = msg.timestamp - msg.header.stamp
+        self.process_time.append(aux)
+        self.total_process_time += aux
 
         # Frame Loss
         self.process_frame_count += 1
@@ -93,7 +95,6 @@ class Monitor:
             lost_frames = msg.img.header.seq - self.last_frame_id
         self.last_frame_id = msg.img.header.seq
 
-        accuracy = Accuracy(0, 0)
         # Accuracy
         if (len(msg.data) != self.target_no):
             self.accuracy.wrong += 1
@@ -144,11 +145,11 @@ class Monitor:
 
                 # YOLO Text
                 txtcolor = 0
-                cv2.putText(img_cv2, txt, (xLeft + 1, yDown - int(txtbox_h/2)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, txtcolor, 1)
+                cv2.putText(img_cv2, txt, (xLeft + 1, yDown - 1), cv2.FONT_HERSHEY_SIMPLEX, 0.4, txtcolor, 1)
 
                 img = self.bridge.cv2_to_compressed_imgmsg(img_cv2, "jpg")
 
-                self.writer.write_frame(img = img, data = MonitorUpdate(accuracy = accuracy, frame_loss = lost_frames, processing_time = self.process_time[self.process_frame_count - 1]))
+                self.writer.write_frame(img = img, data = MonitorUpdate(accuracy = self.accuracy, frame_loss = lost_frames, avg_processing_time = self.total_process_time/self.process_frame_count, processing_time = self.process_time[self.process_frame_count - 1]))
 
         return img_cv2
 
