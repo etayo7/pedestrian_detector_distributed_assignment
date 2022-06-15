@@ -54,7 +54,8 @@ def gallery_builder():
             rospy.get_param("cfg/reid/max_distance"), 
             rospy.get_param("cfg/reid/dynamic_gallery"), 
             rospy.get_param("/master/target_no"), 
-            rospy.get_param("cfg/reid/redo_yolo_windows")
+            rospy.get_param("cfg/reid/redo_yolo_windows"),
+            0
             )
         reid_obj = ReID(files, params)
 
@@ -73,11 +74,11 @@ def gallery_builder():
 
     filenames = filedialog.askopenfilenames(
         title='Select images...',
-        initialdir='~',
+        initialdir=os.path.realpath(__file__),
         filetypes=filetypes)
     
-    home = os.path.expanduser('~')
-    exportPath = f'{home}/PDDA_Galleries/Run_{datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}'
+    dir = os.path.dirname(filenames[0])
+    exportPath = f'{dir}/../Galleries'
     
     try:
         os.makedirs(exportPath)
@@ -92,8 +93,7 @@ def gallery_builder():
     
     for name in names:
         try:
-            os.makedirs(f'{name}/desc')
-            os.makedirs(f'{name}/thumbs')
+            os.makedirs(f'{name}')
         except Exception as e:
             rospy.logwarn(e)
     
@@ -140,11 +140,13 @@ def gallery_builder():
             xRight = int(min(width, windows[i].x + windows[i].w/2 - 1))
             yDown = int(min(height, windows[i].y + windows[i].h/2 - 1))
 
+            base = os.path.splitext(os.path.basename(fn))[0]
+
             cropped = img[yUp:yDown, xLeft:xRight]
-            cv2.imwrite(f'{names[i]}/thumbs/{counter}.jpg',cropped)
+            cv2.imwrite(f'{names[i]}/{base}.jpg',cropped)
             
             desc = reid_obj.extractor(cropped)
-            torch.save(desc, f'{names[i]}/desc/{counter}.pt')
+            torch.save(desc, f'{names[i]}/{base}.pt')
     pass
 
 def sort_key(w : Window):

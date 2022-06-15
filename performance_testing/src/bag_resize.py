@@ -21,18 +21,18 @@ def bag_resizer(src : str, dest : str):
     inBag = rosbag.Bag(src, 'r')
     outBag = rosbag.Bag(dest, 'w')
     
-    w = sys.argv[1]
-    h = sys.argv[2]
+    w = int(sys.argv[1])
+    h = int(sys.argv[2])
     dims = (w, h)
 
     rospy.loginfo("Bag Resizer initialized!")
+    
     for topic, msg, t in inBag.read_messages():
         if 'image_raw' in topic:
             img = bridge.compressed_imgmsg_to_cv2(msg, "bgr8")
             resized = cv2.resize(img, dims, interpolation=cv2.INTER_CUBIC)
             imgmsg = bridge.cv2_to_compressed_imgmsg(resized, dst_format='jpg')
-            outBag.write(f'{topic}/compressed', imgmsg, t)
-    
+            outBag.write(f'{topic}', imgmsg, t)
     rospy.loginfo("Resizing done! Closing.")
     pass
 
